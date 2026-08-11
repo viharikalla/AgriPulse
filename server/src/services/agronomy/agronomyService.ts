@@ -49,7 +49,55 @@ export class AgronomyService {
   }
 
   public static getManagementActions(assessment: CropAssessment): ManagementAction[] {
-    const entry = this.getCondition(assessment.cropName, assessment.primaryCondition.id.split('_').slice(1).join('_') || 'early_blight');
+    const rawConditionId = assessment.primaryCondition.id.split('_').slice(1).join('_') || 'unknown';
+    const entry = this.getCondition(assessment.cropName, rawConditionId);
+
+    const isUnknown = rawConditionId === 'unknown' || assessment.primaryCondition.name.toLowerCase().includes('unknown');
+    const isLowConfidence = assessment.confidenceLevel === 'Low' || assessment.confidenceScore < 0.7;
+
+    if (isUnknown || isLowConfidence) {
+      return [
+        {
+          id: `act-review-${Date.now()}`,
+          actionType: 'Inspect',
+          title: 'Manual Field Verification Required',
+          description: 'Visual evidence requires certified agronomic field inspection before applying chemical controls.',
+          recommendedDosage: 'N/A - Chemical treatment not advised without visual confirmation.',
+          timingWindow: {
+            startTime: new Date().toISOString(),
+            endTime: new Date(Date.now() + 24 * 3600000).toISOString(),
+            durationHours: 0,
+            averageScore: 0,
+            minimumScore: 0,
+            maximumScore: 0,
+            status: 'INSUFFICIENT_DATA',
+            reasons: ['Diagnostic confidence insufficient for chemical spray calculation.'],
+            constraints: ['Requires visual field confirmation'],
+            weatherSummary: {
+              minTempC: 20,
+              maxTempC: 30,
+              avgHumidityPct: 60,
+              maxPrecipProbabilityPct: 0,
+              totalPrecipitationMm: 0,
+              maxWindSpeedKmh: 10,
+              maxWindGustKmh: 15,
+              dominantCondition: 'Clear',
+            },
+            bestStartTime: 'N/A',
+            bestEndTime: 'N/A',
+            suitabilityScore: 0,
+            recommendationReason: 'Requires visual field confirmation',
+            riskFactors: ['Unconfirmed diagnosis risk'],
+            weatherConstraintReasoning: 'Spraying unconfirmed target diseases causes ineffective control.',
+          },
+          precautions: [
+            'Inspect affected leaves and stem junctions closely.',
+            'Consult a certified local extension officer before applying crop protection chemicals.',
+          ],
+          priority: 'High',
+        },
+      ];
+    }
     return [
       {
         id: `act-1-${Date.now()}`,

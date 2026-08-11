@@ -1,30 +1,56 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 
+export interface ManagementCardProps {
+  isNeedsReview?: boolean;
+}
 
-export const ManagementCard: React.FC = () => {
-  const steps = [
-    {
-      num: '01',
-      title: 'Remove severely affected plant material',
-      desc: 'Prune and clear severely spotted lower foliage to reduce fungal spore load in the canopy reservoir.',
-    },
-    {
-      num: '02',
-      title: 'Improve field sanitation',
-      desc: 'Collect drop foliage and clear weeds around row bases to maintain airflow and lower surface leaf moisture.',
-    },
-    {
-      num: '03',
-      title: 'Follow registered treatment guidance & product label instructions',
-      desc: 'Apply locally registered copper or chlorothalonil protectant fungicide strictly according to safety dosage intervals.',
-    },
-    {
-      num: '04',
-      title: 'Monitor new growth shoots',
-      desc: 'Check newly emerging apical leaves daily for early lesion expansion post treatment.',
-    },
-  ];
+export const ManagementCard: React.FC<ManagementCardProps> = ({ isNeedsReview = false }) => {
+  const steps = isNeedsReview
+    ? [
+        {
+          num: '01',
+          title: 'Remove severely affected plant material',
+          desc: 'Prune and clear severely spotted lower foliage to reduce fungal spore load in the canopy reservoir.',
+        },
+        {
+          num: '02',
+          title: 'Improve field sanitation',
+          desc: 'Collect drop foliage and clear weeds around row bases to maintain airflow and lower surface leaf moisture.',
+        },
+        {
+          num: '03',
+          title: 'Perform physical field inspection',
+          desc: 'Consult a certified local extension officer to confirm symptoms before applying any crop protection chemicals.',
+        },
+        {
+          num: '04',
+          title: 'Monitor new growth shoots',
+          desc: 'Check newly emerging apical leaves daily for lesion expansion while awaiting field confirmation.',
+        },
+      ]
+    : [
+        {
+          num: '01',
+          title: 'Remove severely affected plant material',
+          desc: 'Prune and clear severely spotted lower foliage to reduce fungal spore load in the canopy reservoir.',
+        },
+        {
+          num: '02',
+          title: 'Improve field sanitation',
+          desc: 'Collect drop foliage and clear weeds around row bases to maintain airflow and lower surface leaf moisture.',
+        },
+        {
+          num: '03',
+          title: 'Follow registered treatment guidance & product label instructions',
+          desc: 'Apply locally registered protectant treatment strictly according to official package safety dosage intervals.',
+        },
+        {
+          num: '04',
+          title: 'Monitor new growth shoots',
+          desc: 'Check newly emerging apical leaves daily for early lesion expansion post treatment.',
+        },
+      ];
 
   return (
     <Card glassLevel="medium" className="border-l-4 border-l-[#B9E48C]">
