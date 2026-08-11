@@ -150,4 +150,22 @@ describe('Stage 11J & Production History Persistence & Isolation Tests', () => {
     expect(Array.isArray(historyRes.body.data)).toBe(true);
     expect(historyRes.body.data.length).toBe(0);
   });
+
+  it('5. GET /api/history returns private no-store headers and omits ETag to prevent HTTP 304 stale caching', async () => {
+    const user = await AuthService.signup({
+      name: 'Cache Test User',
+      email: 'cacheuser@agripulse.io',
+      password: 'Password123!',
+    });
+    const token = AuthService.generateToken(user);
+
+    const res = await request(app)
+      .get('/api/history')
+      .set('Cookie', [`agripulse_session=${token}`]);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('private, no-cache, no-store, must-revalidate');
+    res.headers['pragma'] && expect(res.headers['pragma']).toBe('no-cache');
+    expect(res.headers['etag'] === undefined || res.headers['etag'] === 'false').toBe(true);
+  });
 });

@@ -69,6 +69,11 @@ export async function getAnalysisById(req: AuthenticatedRequest, res: Response, 
       return;
     }
 
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    (res as any).set('ETag', false);
+
     res.status(200).json({
       success: true,
       data: result,
@@ -81,6 +86,12 @@ export async function getAnalysisById(req: AuthenticatedRequest, res: Response, 
 export async function getHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
     const history = await analysisService.getHistory(req.sessionId, req.user?.id);
+
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    (res as any).set('ETag', false);
+
     res.status(200).json({
       success: true,
       data: history,

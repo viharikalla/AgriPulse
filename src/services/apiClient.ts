@@ -215,6 +215,10 @@ export class ApiClient {
     try {
       const res = await fetch(`${API_BASE_URL}/history`, {
         credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
       });
       if (res.ok) {
         const json = await res.json();
