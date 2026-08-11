@@ -1,5 +1,5 @@
-import serverApp from '../server/src/app.js';
-import * as serverDb from '../server/src/db/connection.js';
+import serverApp from '../server/dist/app.js';
+import * as serverDb from '../server/dist/db/connection.js';
 
 const app = (serverApp as any).app || (serverApp as any).default || serverApp;
 const connectDatabase = serverDb.connectDatabase || (serverDb as any).default?.connectDatabase;
