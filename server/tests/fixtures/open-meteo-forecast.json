@@ -1,0 +1,42 @@
+{
+  "latitude": 16.5,
+  "longitude": 80.625,
+  "generationtime_ms": 0.45,
+  "utc_offset_seconds": 19800,
+  "timezone": "Asia/Kolkata",
+  "timezone_abbreviation": "IST",
+  "elevation": 23.0,
+  "hourly_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "precipitation_probability": "%",
+    "precipitation": "mm",
+    "rain": "mm",
+    "weather_code": "wmo code",
+    "wind_speed_10m": "km/h",
+    "wind_gusts_10m": "km/h",
+    "dew_point_2m": "°C",
+    "cloud_cover": "%",
+    "et0_fao_evapotranspiration": "mm"
+  },
+  "hourly": {
+    "time": [
+      "2026-08-10T14:00",
+      "2026-08-10T15:00",
+      "2026-08-10T16:00",
+      "2026-08-10T17:00"
+    ],
+    "temperature_2m": [29.2, 28.5, 27.8, 26.5],
+    "relative_humidity_2m": [78, 80, 82, 85],
+    "precipitation_probability": [82, 65, 30, 10],
+    "precipitation": [2.5, 1.2, 0.2, 0.0],
+    "rain": [2.5, 1.2, 0.2, 0.0],
+    "weather_code": [63, 61, 3, 1],
+    "wind_speed_10m": [8.4, 9.1, 7.5, 6.2],
+    "wind_gusts_10m": [14.2, 15.0, 12.1, 10.0],
+    "dew_point_2m": [24.1, 24.0, 23.8, 23.2],
+    "cloud_cover": [90, 75, 45, 20],
+    "et0_fao_evapotranspiration": [0.45, 0.38, 0.25, 0.12]
+  }
+}

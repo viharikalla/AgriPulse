@@ -1,0 +1,3 @@
+# AgriPulse 10-Crop Evaluation Image Directory Structure
+# Images are placed under subdirectories corresponding to crops:
+# /rice, /wheat, /maize, /tomato, /potato, /chilli, /soybean, /groundnut, /chickpea, /cotton

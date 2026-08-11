@@ -1,0 +1,83 @@
+[
+  {
+    "id": "rice-blast-01",
+    "crop": "Rice",
+    "filename": "rice/rice-blast-01.jpg",
+    "datasetSource": "Digital Green / SAGE",
+    "expectedCondition": "leaf_blast",
+    "licenseIfKnown": "CC-BY-4.0 / Educational",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "wheat-rust-01",
+    "crop": "Wheat",
+    "filename": "wheat/wheat-rust-01.jpg",
+    "datasetSource": "ICAR-IIWBR / PlantVillage",
+    "expectedCondition": "yellow_rust",
+    "licenseIfKnown": "CC-BY-4.0 / Open Access",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "maize-fall-armyworm-01",
+    "crop": "Maize",
+    "filename": "maize/maize-fall-armyworm-01.jpg",
+    "datasetSource": "PlantVillage / ICAR-IIMR",
+    "expectedCondition": "fall_armyworm",
+    "licenseIfKnown": "CC-BY-4.0",
+    "sourceVerificationStatus": "NOT_CURRENTLY_SUPPORTED_BY_AGRIPULSE_TAXONOMY"
+  },
+  {
+    "id": "tomato-early-blight-01",
+    "crop": "Tomato",
+    "filename": "tomato/tomato-early-blight-01.jpg",
+    "datasetSource": "PlantVillage",
+    "expectedCondition": "early_blight",
+    "licenseIfKnown": "CC-BY-4.0",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "potato-early-blight-01",
+    "crop": "Potato",
+    "filename": "potato/potato-early-blight-01.jpg",
+    "datasetSource": "PlantVillage",
+    "expectedCondition": "early_blight",
+    "licenseIfKnown": "CC-BY-4.0",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "chilli-leaf-curl-01",
+    "crop": "Chilli",
+    "filename": "chilli/chilli-leaf-curl-01.jpg",
+    "datasetSource": "SAGE Sample / ICAR-IIHR",
+    "expectedCondition": "leaf_curl",
+    "licenseIfKnown": "CC-BY-4.0 / Open Access",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "soybean-bacterial-leaf-blight-01",
+    "crop": "Soybean",
+    "filename": "soybean/soybean-bacterial-leaf-blight-01.jpg",
+    "datasetSource": "Project-AgML Soybean",
+    "expectedCondition": "bacterial_blight",
+    "licenseIfKnown": "CC-BY-4.0",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "groundnut-leaf-spot-01",
+    "crop": "Groundnut",
+    "filename": "groundnut/groundnut-leaf-spot-01.jpg",
+    "datasetSource": "Project-AgML Groundnut",
+    "expectedCondition": "early_leaf_spot",
+    "licenseIfKnown": "CC-BY-4.0",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  },
+  {
+    "id": "cotton-bacterial-blight-01",
+    "crop": "Cotton",
+    "filename": "cotton/cotton-bacterial-blight-01.jpg",
+    "datasetSource": "ICAR-CICR Nagpur / AgML",
+    "expectedCondition": "bacterial_blight",
+    "licenseIfKnown": "CC-BY-4.0 / Educational",
+    "sourceVerificationStatus": "VERIFIED_GROUNDED"
+  }
+]

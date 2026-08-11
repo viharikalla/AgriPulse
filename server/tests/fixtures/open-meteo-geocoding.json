@@ -1,0 +1,21 @@
+{
+  "results": [
+    {
+      "id": 1253184,
+      "name": "Vijayawada",
+      "latitude": 16.50617,
+      "longitude": 80.64801,
+      "elevation": 23.0,
+      "feature_code": "PPLA",
+      "country_code": "IN",
+      "admin1_id": 1278629,
+      "timezone": "Asia/Kolkata",
+      "population": 1034358,
+      "country_id": 1269750,
+      "country": "India",
+      "admin1": "Andhra Pradesh",
+      "admin2": "Krishna"
+    }
+  ],
+  "generationtime_ms": 0.32
+}

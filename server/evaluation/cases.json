@@ -1,0 +1,74 @@
+[
+  {
+    "id": "rice-blast-01",
+    "crop": "Rice",
+    "expectedCondition": "leaf_blast",
+    "imagePath": "rice/rice-blast-01.jpg",
+    "datasetSource": "Digital Green / SAGE",
+    "imageQuality": "fair",
+    "notes": "Spindle-shaped diamond blast lesion on rice foliage."
+  },
+  {
+    "id": "wheat-rust-01",
+    "crop": "Wheat",
+    "expectedCondition": "yellow_rust",
+    "imagePath": "wheat/wheat-rust-01.jpg",
+    "datasetSource": "ICAR-IIWBR / PlantVillage",
+    "imageQuality": "good",
+    "notes": "Linear stripe rust pustules along leaf blade."
+  },
+  {
+    "id": "tomato-early-blight-01",
+    "crop": "Tomato",
+    "expectedCondition": "early_blight",
+    "imagePath": "tomato/tomato-early-blight-01.jpg",
+    "datasetSource": "PlantVillage",
+    "imageQuality": "good",
+    "notes": "Concentric target ring spots with chlorotic halo on tomato leaf."
+  },
+  {
+    "id": "potato-early-blight-01",
+    "crop": "Potato",
+    "expectedCondition": "early_blight",
+    "imagePath": "potato/potato-early-blight-01.jpg",
+    "datasetSource": "PlantVillage",
+    "imageQuality": "good",
+    "notes": "Dark brown circular spots on mature potato foliage."
+  },
+  {
+    "id": "chilli-leaf-curl-01",
+    "crop": "Chilli",
+    "expectedCondition": "leaf_curl",
+    "imagePath": "chilli/chilli-leaf-curl-01.jpg",
+    "datasetSource": "SAGE Sample / ICAR-IIHR",
+    "imageQuality": "good",
+    "notes": "Upward leaf curling and puckering caused by vector ChiLCV."
+  },
+  {
+    "id": "soybean-bacterial-leaf-blight-01",
+    "crop": "Soybean",
+    "expectedCondition": "bacterial_blight",
+    "imagePath": "soybean/soybean-bacterial-leaf-blight-01.jpg",
+    "datasetSource": "Project-AgML Soybean",
+    "imageQuality": "good",
+    "notes": "Angular translucent leaf spots with yellow halo on soybean trifoliate."
+  },
+  {
+    "id": "groundnut-leaf-spot-01",
+    "crop": "Groundnut",
+    "expectedCondition": "early_leaf_spot",
+    "imagePath": "groundnut/groundnut-leaf-spot-01.jpg",
+    "datasetSource": "Project-AgML Groundnut",
+    "imageQuality": "fair",
+    "notes": "Tikka leaf spot lesions on groundnut foliage."
+  },
+  {
+    "id": "cotton-bacterial-blight-01",
+    "crop": "Cotton",
+    "expectedCondition": "bacterial_blight",
+    "imagePath": "cotton/cotton-bacterial-blight-01.jpg",
+    "datasetSource": "ICAR-CICR Nagpur / AgML",
+    "imageQuality": "good",
+    "notes": "Angular water-soaked dark leaf spots on palmate cotton leaf."
+  }
+]

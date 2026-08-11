@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-08-11T05:27:35.631Z",
+  "vijayawada": {
+    "location": "Vijayawada, Andhra Pradesh",
+    "latitude": 16.5062,
+    "longitude": 80.648,
+    "providerAI": "GeminiVisionProvider",
+    "providerWeather": "open-meteo",
+    "crop": "Tomato",
+    "condition": "Tomato Late Blight (Phytophthora infestans)",
+    "conditionId": "tomato_late_blight",
+    "confidenceScore": 0.85,
+    "confidenceLevel": "High",
+    "severity": "Moderate",
+    "visualEvidence": [
+      "yellowish-green spots and lesions on upper leaf surface",
+      "water-soaked or chlorotic areas developing on the leaf blade",
+      "some necrotic spots within the lesions"
+    ],
+    "weatherSummary": {
+      "tempC": 30.5,
+      "humidityPct": 60,
+      "windKmh": 9.8,
+      "precipProbPct": 4
+    },
+    "decisionStatus": "WAIT",
+    "suitabilityScore": 96,
+    "bestStartTime": "06:00",
+    "bestEndTime": "18:00",
+    "latencyMs": 2262
+  },
+  "bengaluru": {
+    "location": "Bengaluru, Karnataka",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "providerAI": "GeminiVisionProvider",
+    "providerWeather": "open-meteo",
+    "crop": "Tomato",
+    "condition": "Tomato leaf mold",
+    "conditionId": "tomato_unknown",
+    "confidenceScore": 0.85,
+    "confidenceLevel": "Low",
+    "severity": "Moderate",
+    "weatherSummary": {
+      "tempC": 21.5,
+      "humidityPct": 95,
+      "windKmh": 8,
+      "precipProbPct": 21
+    },
+    "decisionStatus": "WAIT",
+    "suitabilityScore": 97,
+    "bestStartTime": "06:00",
+    "bestEndTime": "18:00",
+    "latencyMs": 1468
+  }
+}
