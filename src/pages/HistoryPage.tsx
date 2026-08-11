@@ -113,7 +113,7 @@ export const HistoryPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-[#10251C] border border-[#B9E48C]/30 flex items-center justify-center text-2xl shrink-0">
-                      {item.crop.icon}
+                      {item.crop?.icon || (item.crop?.name === 'Rice' ? '🌾' : item.crop?.name === 'Tomato' ? '🍅' : item.crop?.name === 'Chilli' ? '🌶️' : item.crop?.name === 'Potato' ? '🥔' : item.crop?.name === 'Maize' ? '🌽' : '🌱')}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">

@@ -1,13 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { AuthService } from '../src/services/auth/authService.js';
 import { InMemUserStore } from '../src/models/User.js';
 import { InMemAnalysisStore } from '../src/models/Analysis.js';
 import { ImageProcessingService } from '../src/services/imageProcessingService.js';
-import { vi } from 'vitest';
 
-describe('Stage 11J Analysis Ownership & Isolation Tests', () => {
+describe('Stage 11J & Production History Persistence & Isolation Tests', () => {
   beforeEach(() => {
     InMemUserStore.clear();
     InMemAnalysisStore.clear();
@@ -84,7 +83,7 @@ describe('Stage 11J Analysis Ownership & Isolation Tests', () => {
     expect(getRes.body.error.message).toContain('not found or access denied');
   });
 
-  it('3. User A history returns only User A analyses', async () => {
+  it('3. User A history returns only User A analyses and survives fresh request/session', async () => {
     const userA = await AuthService.signup({
       name: 'User A',
       email: 'usera@agripulse.io',
@@ -115,9 +114,11 @@ describe('Stage 11J Analysis Ownership & Isolation Tests', () => {
       .field('location', 'Vijayawada')
       .attach('image', Buffer.from('dummy image'), 'leaf.jpg');
 
+    // Fresh session token for User A
+    const freshTokenA = AuthService.generateToken(userA);
     const historyResA = await request(app)
       .get('/api/history')
-      .set('Cookie', [`agripulse_session=${tokenA}`]);
+      .set('Cookie', [`agripulse_session=${freshTokenA}`]);
 
     expect(historyResA.status).toBe(200);
     expect(historyResA.body.data.length).toBe(1);
@@ -130,5 +131,23 @@ describe('Stage 11J Analysis Ownership & Isolation Tests', () => {
     expect(historyResB.status).toBe(200);
     expect(historyResB.body.data.length).toBe(1);
     expect(historyResB.body.data[0].crop.name).toBe('Potato');
+  });
+
+  it('4. Empty user history returns a safe empty array state', async () => {
+    const newOwner = await AuthService.signup({
+      name: 'New Owner',
+      email: 'newowner@agripulse.io',
+      password: 'Password123!',
+    });
+    const token = AuthService.generateToken(newOwner);
+
+    const historyRes = await request(app)
+      .get('/api/history')
+      .set('Cookie', [`agripulse_session=${token}`]);
+
+    expect(historyRes.status).toBe(200);
+    expect(historyRes.body.success).toBe(true);
+    expect(Array.isArray(historyRes.body.data)).toBe(true);
+    expect(historyRes.body.data.length).toBe(0);
   });
 });

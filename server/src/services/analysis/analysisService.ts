@@ -185,6 +185,7 @@ export class AnalysisService {
       crop: {
         name: input.crop,
         displayName: input.crop,
+        icon: input.crop === 'Rice' ? '🌾' : input.crop === 'Tomato' ? '🍅' : input.crop === 'Chilli' ? '🌶️' : input.crop === 'Potato' ? '🥔' : input.crop === 'Maize' ? '🌽' : '🌱',
       },
       photoUrl: `data:${processed.imageQuality.mimeType || 'image/jpeg'};base64,${processed.buffer.toString('base64')}`,
       assessment,

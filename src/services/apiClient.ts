@@ -69,9 +69,12 @@ export class ApiClient {
     }
     return null;
   }
+
   public static async searchLocation(query: string): Promise<ResolvedLocation[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/location/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${API_BASE_URL}/location/search?q=${encodeURIComponent(query)}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.locations)) {
@@ -102,7 +105,9 @@ export class ApiClient {
       });
       if (locationName) params.append('locationName', locationName);
 
-      const res = await fetch(`${API_BASE_URL}/weather?${params.toString()}`);
+      const res = await fetch(`${API_BASE_URL}/weather?${params.toString()}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -142,6 +147,7 @@ export class ApiClient {
       const res = await fetch(`${API_BASE_URL}/analyze`, {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -189,7 +195,9 @@ export class ApiClient {
 
   public static async getAnalysis(id: string): Promise<FieldAnalysis | null> {
     try {
-      const res = await fetch(`${API_BASE_URL}/analysis/${id}`);
+      const res = await fetch(`${API_BASE_URL}/analysis/${id}`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -205,7 +213,9 @@ export class ApiClient {
 
   public static async getHistory(): Promise<FieldAnalysis[]> {
     try {
-      const res = await fetch(`${API_BASE_URL}/history`);
+      const res = await fetch(`${API_BASE_URL}/history`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
@@ -225,6 +235,7 @@ export class ApiClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, contextCrop, analysisId }),
+        credentials: 'include',
       });
 
       if (res.ok) {

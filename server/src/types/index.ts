@@ -230,6 +230,7 @@ export interface FieldAnalysis {
   crop: {
     name: SupportedCrop;
     displayName: string;
+    icon?: string;
   };
   photoUrl: string;
   assessment: CropAssessment;
