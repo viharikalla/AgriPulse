@@ -7,7 +7,7 @@ const analysisService = new AnalysisService();
 export async function askAssistant(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const input = AssistantRequestSchema.parse(req.body);
-    const answer = await analysisService.askAssistant(input.question, input.contextCrop);
+    const answer = await analysisService.askAssistant(input.question, input.contextCrop, input.analysisId);
 
     res.status(200).json({
       success: true,

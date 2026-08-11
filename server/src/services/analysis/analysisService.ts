@@ -186,7 +186,7 @@ export class AnalysisService {
         name: input.crop,
         displayName: input.crop,
       },
-      photoUrl: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80',
+      photoUrl: `data:${processed.imageQuality.mimeType || 'image/jpeg'};base64,${processed.buffer.toString('base64')}`,
       assessment,
       weatherSnapshot,
       decision,
@@ -315,8 +315,15 @@ export class AnalysisService {
     return InMemAnalysisStore.findByUser(userId);
   }
 
-  public async askAssistant(question: string, contextCrop?: any): Promise<string> {
+  public async askAssistant(question: string, contextCrop?: any, analysisId?: string): Promise<string> {
+    let contextAnalysis: any = undefined;
+    if (analysisId) {
+      const record = await this.getAnalysisById(analysisId);
+      if (record) {
+        contextAnalysis = record.assessment;
+      }
+    }
     const provider = this.customAiProvider || getAIProvider();
-    return provider.answerFieldQuestion(question, contextCrop);
+    return provider.answerFieldQuestion(question, contextCrop, contextAnalysis);
   }
 }

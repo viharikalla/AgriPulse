@@ -219,12 +219,12 @@ export class ApiClient {
     return AdvisoryService.getHistory();
   }
 
-  public static async askFieldQuestion(question: string, contextCrop?: SupportedCropName): Promise<string> {
+  public static async askFieldQuestion(question: string, contextCrop?: SupportedCropName, analysisId?: string): Promise<string> {
     try {
       const res = await fetch(`${API_BASE_URL}/assistant`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, contextCrop }),
+        body: JSON.stringify({ question, contextCrop, analysisId }),
       });
 
       if (res.ok) {

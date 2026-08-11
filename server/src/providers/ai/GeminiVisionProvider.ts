@@ -275,8 +275,21 @@ export class GeminiVisionProvider implements AIProvider {
   async answerFieldQuestion(
     question: string,
     contextCrop?: SupportedCrop,
-    _contextAnalysis?: CropAssessment
+    contextAnalysis?: CropAssessment
   ): Promise<string> {
-    return `Gemini Assistant response for ${contextCrop || 'crop'} question: '${question}'. Postpone spraying if rain is expected.`;
+    const isNeedsReview =
+      contextAnalysis &&
+      (contextAnalysis.confidenceLevel === 'Low' ||
+        contextAnalysis.confidenceScore < 0.7 ||
+        contextAnalysis.primaryCondition?.id?.includes('unknown') ||
+        contextAnalysis.primaryCondition?.name?.toLowerCase().includes('unknown') ||
+        contextAnalysis.primaryCondition?.name?.toLowerCase().includes('unidentified'));
+
+    if (isNeedsReview) {
+      return `Agronomic Assistant Safety Notice: The visual diagnosis for ${contextCrop || 'this crop'} is currently unconfirmed and requires certified field verification. AgriPulse cannot assume a specific disease or recommend chemical treatments until visual symptoms are inspected in the field. Please consult a local agricultural extension officer.`;
+    }
+
+    const conditionName = contextAnalysis?.primaryCondition?.name || contextCrop || 'crop';
+    return `Gemini Assistant response for ${conditionName} question: '${question}'. Postpone spraying if rain is expected within 4 hours.`;
   }
 }

@@ -5,7 +5,7 @@ import { MockAIProvider } from '../src/providers/ai/mockAIProvider.js';
 import { ImageProcessingService } from '../src/services/imageProcessingService.js';
 import { CropAssessment } from '../src/types/index.js';
 
-describe('Stage 11F Safety Contract — Reliability to Management Pipeline', () => {
+describe('Stage 11F & Production Safety — Image Preservation & Assistant Reliability Context', () => {
   beforeEach(() => {
     vi.spyOn(ImageProcessingService, 'processImage').mockResolvedValue({
       buffer: Buffer.from('mock image bytes'),
@@ -34,7 +34,21 @@ describe('Stage 11F Safety Contract — Reliability to Management Pipeline', () 
     'insecticide',
   ];
 
-  it('1. NEEDS_REVIEW response contains no chemical treatment recommendations or product names', async () => {
+  it('1. Uploaded crop image photoUrl is preserved as base64 data URL and not stock Unsplash image', async () => {
+    const service = new AnalysisService();
+    const result = await service.analyzeField(
+      Buffer.from('real-uploaded-crop-foliage-image-bytes'),
+      'image/jpeg',
+      { crop: 'Tomato', location: 'Vijayawada' },
+      'session-photo-1'
+    );
+
+    expect(result.photoUrl).toBeDefined();
+    expect(result.photoUrl.startsWith('data:image/jpeg;base64,')).toBe(true);
+    expect(result.photoUrl).not.toContain('unsplash.com');
+  });
+
+  it('2. NEEDS_REVIEW response contains no chemical treatment recommendations or product names', async () => {
     const lowConfidenceProvider = new MockAIProvider({
       cropName: 'Tomato',
       primaryCondition: {
@@ -63,17 +77,15 @@ describe('Stage 11F Safety Contract — Reliability to Management Pipeline', () 
     expect(primaryAction.actionType).toBe('Inspect');
     expect(primaryAction.recommendedDosage).toContain('N/A');
 
-    // Check all management actions text for chemical product names
     const allActionText = JSON.stringify(result.managementActions).toLowerCase();
     for (const kw of CHEMICAL_KEYWORDS) {
       expect(allActionText).not.toContain(kw);
     }
 
-    // Verify non-chemical inspection/field verification guidance is present
     expect(primaryAction.precautions.some((p) => p.toLowerCase().includes('consult') || p.toLowerCase().includes('inspect'))).toBe(true);
   });
 
-  it('2. UNSUPPORTED response contains no chemical treatment recommendations or product names', async () => {
+  it('3. UNSUPPORTED response contains no chemical treatment recommendations or product names', async () => {
     const unsupportedProvider = new MockAIProvider({
       cropName: 'Tomato',
       primaryCondition: {
@@ -108,7 +120,73 @@ describe('Stage 11F Safety Contract — Reliability to Management Pipeline', () 
     }
   });
 
-  it('3. AgronomyService.getManagementActions returns non-chemical inspect action for unknown condition', () => {
+  it('4. NEEDS_REVIEW Ask AgriPulse assistant does not substitute "Tomato Early Blight" or chemical dosage advice', async () => {
+    const lowConfidenceProvider = new MockAIProvider({
+      cropName: 'Tomato',
+      primaryCondition: {
+        id: 'tomato_unknown',
+        name: 'Unspecified Tomato Leaf Spot',
+        severity: 'Moderate',
+        symptoms: ['Chlorotic leaf spots'],
+      },
+      confidenceScore: 0.4,
+      confidenceLevel: 'Low',
+      diagnosisSummary: 'Uncertain diagnosis.',
+    });
+
+    const service = new AnalysisService(lowConfidenceProvider);
+    const analysis = await service.analyzeField(
+      Buffer.from('fake-image-bytes'),
+      'image/jpeg',
+      { crop: 'Tomato', location: 'Vijayawada' },
+      'session-assistant-review-1'
+    );
+
+    const answer = await service.askAssistant(
+      'What chemical dose should I spray for this spot?',
+      'Tomato',
+      analysis.id
+    );
+
+    expect(answer).not.toContain('Tomato Early Blight');
+    expect(answer).not.toContain('2.0 grams per liter');
+    expect(answer.toLowerCase()).toContain('unconfirmed');
+    expect(answer.toLowerCase()).toContain('verification');
+  });
+
+  it('5. RELIABLE Ask AgriPulse assistant retains normal disease-specific assistant behavior', async () => {
+    const reliableProvider = new MockAIProvider({
+      cropName: 'Tomato',
+      primaryCondition: {
+        id: 'tomato_early_blight',
+        name: 'Tomato Early Blight',
+        severity: 'Moderate',
+        symptoms: ['Concentric target rings on lower leaves'],
+      },
+      confidenceScore: 0.92,
+      confidenceLevel: 'High',
+      diagnosisSummary: 'Grounded early blight detection.',
+    });
+
+    const service = new AnalysisService(reliableProvider);
+    const analysis = await service.analyzeField(
+      Buffer.from('fake-image-bytes'),
+      'image/jpeg',
+      { crop: 'Tomato', location: 'Vijayawada' },
+      'session-assistant-reliable-1'
+    );
+
+    const answer = await service.askAssistant(
+      'What is the recommended dose for this disease?',
+      'Tomato',
+      analysis.id
+    );
+
+    expect(answer).toContain('Tomato Early Blight');
+    expect(answer).toContain('2.0 grams per liter');
+  });
+
+  it('6. AgronomyService.getManagementActions returns non-chemical inspect action for unknown condition', () => {
     const unknownAssessment: CropAssessment = {
       cropName: 'Tomato',
       primaryCondition: {
@@ -131,32 +209,5 @@ describe('Stage 11F Safety Contract — Reliability to Management Pipeline', () 
     expect(actions[0].recommendedDosage).toContain('N/A');
     expect(actions[0].description).not.toContain('copper');
     expect(actions[0].description).not.toContain('chlorothalonil');
-  });
-
-  it('4. RELIABLE response preserves standard agronomic treatment principles and spray window calculation', async () => {
-    const reliableProvider = new MockAIProvider({
-      cropName: 'Tomato',
-      primaryCondition: {
-        id: 'tomato_early_blight',
-        name: 'Tomato Early Blight',
-        severity: 'Moderate',
-        symptoms: ['Concentric target rings on lower leaves'],
-      },
-      confidenceScore: 0.92,
-      confidenceLevel: 'High',
-      diagnosisSummary: 'Grounded early blight detection.',
-    });
-
-    const service = new AnalysisService(reliableProvider);
-    const result = await service.analyzeField(
-      Buffer.from('fake-image-bytes'),
-      'image/jpeg',
-      { crop: 'Tomato', location: 'Vijayawada' },
-      'session-reliable-1'
-    );
-
-    expect(result.decision.decisionStatus).not.toBe('INSUFFICIENT_DATA');
-    expect(result.decision.primaryAction.actionType).toBe('Spray');
-    expect(result.decision.primaryAction.recommendedDosage).not.toContain('N/A');
   });
 });

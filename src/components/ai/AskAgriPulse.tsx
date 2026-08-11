@@ -3,37 +3,87 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { MessageSquare, Sparkles, Send, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { ApiClient } from '../../services/apiClient';
 
-export const AskAgriPulse: React.FC = () => {
+export interface AskAgriPulseProps {
+  cropName?: string;
+  conditionName?: string;
+  isNeedsReview?: boolean;
+  analysisId?: string;
+}
+
+export const AskAgriPulse: React.FC<AskAgriPulseProps> = ({
+  cropName = 'Tomato',
+  conditionName = 'Early Blight',
+  isNeedsReview = false,
+  analysisId,
+}) => {
   const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const defaultNeedsReviewAnswer =
+    'Agronomic Assistant Notice: The visual diagnosis for this crop is currently unconfirmed and requires certified agronomic field verification before chemical application. Keep monitoring foliage undersides and weather forecast trends.';
+
+  const defaultReliableAnswer = `If rain begins earlier than the forecast window tomorrow, postpone application to the next calm dry window. Protectant treatments for ${conditionName} require rainfast drying time.`;
+
   const [activeAnswer, setActiveAnswer] = useState<string | null>(
-    'If rain begins earlier than the 07:00 AM forecast tomorrow, postpone application to the next calm dry window. Do not spray while leaf surface wetness is visible.'
+    isNeedsReview ? defaultNeedsReviewAnswer : defaultReliableAnswer
   );
 
-  const presetQuestions = [
-    {
-      q: 'What if it rains early tomorrow?',
-      a: 'If rain begins earlier than the 07:00 AM forecast tomorrow, postpone application to the next calm dry window. Do not spray while leaf surface wetness is visible.',
-    },
-    {
-      q: 'How long must the protectant spray dry?',
-      a: 'Foliar protectants require a minimum of 2 hours rainfast drying time under calm conditions (<10 km/h wind) for full uptake.',
-    },
-    {
-      q: 'When should I re-evaluate the field?',
-      a: 'Re-inspect leaf undersides 48 hours post-application to confirm lesion border halting before deciding on follow-up sprays.',
-    },
-  ];
+  const presetQuestions = isNeedsReview
+    ? [
+        {
+          q: 'What if visual diagnosis is unconfirmed?',
+          a: 'AgriPulse requires a certified agronomic field inspection before applying chemical controls. Inspect leaf undersides and monitor weather forecast trends.',
+        },
+        {
+          q: 'Is chemical treatment safe now?',
+          a: 'No chemical treatment is advised without confirmed diagnostic identification. Applying unconfirmed chemicals risks crop damage and wasted expenditure.',
+        },
+        {
+          q: 'What weather parameters should I monitor?',
+          a: 'Monitor precipitation probability, wind speed (<12 km/h), and canopy moisture while awaiting field verification.',
+        },
+      ]
+    : [
+        {
+          q: 'What if it rains early tomorrow?',
+          a: 'If rain begins earlier than the forecast window, postpone application to the next calm dry window. Do not spray while leaf surface wetness is visible.',
+        },
+        {
+          q: 'How long must the protectant spray dry?',
+          a: 'Foliar protectants require a minimum of 2 hours rainfast drying time under calm conditions (<10 km/h wind) for full uptake.',
+        },
+        {
+          q: 'When should I re-evaluate the field?',
+          a: 'Re-inspect leaf undersides 48 hours post-application to confirm lesion border halting before deciding on follow-up sprays.',
+        },
+      ];
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    // Simulate instant intelligent response
-    setActiveAnswer(
-      `Agronomic Guidance for "${query}": Keep monitoring relative humidity and wind speed. For Tomato Early Blight, ensure foliage undersides receive uniform spray coverage during the 07:00-10:30 AM dry window.`
-    );
-    setQuery('');
+    if (isNeedsReview) {
+      setActiveAnswer(
+        `Agronomic Guidance for "${query}": Visual diagnosis requires field confirmation. No condition-specific chemical treatment or dosage is advised until certified inspection confirms the disease. Keep monitoring field sanitation and weather trends.`
+      );
+      setQuery('');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const answer = await ApiClient.askFieldQuestion(query, cropName as any, analysisId);
+      setActiveAnswer(answer);
+    } catch {
+      setActiveAnswer(
+        `Agronomic Guidance for "${query}": Keep monitoring relative humidity and wind speed. For ${conditionName}, ensure foliage undersides receive uniform spray coverage during calm morning dry windows.`
+      );
+    } finally {
+      setLoading(false);
+      setQuery('');
+    }
   };
 
   return (
@@ -98,6 +148,7 @@ export const AskAgriPulse: React.FC = () => {
             type="submit"
             variant="primary"
             size="md"
+            isLoading={loading}
             rightIcon={<Send className="w-4 h-4" />}
             className="rounded-xl bg-[#B9E48C] text-[#07130F] font-semibold text-xs border-0 shrink-0"
           >

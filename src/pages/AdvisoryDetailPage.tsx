@@ -124,7 +124,7 @@ export const AdvisoryDetailPage: React.FC = () => {
 
         {/* 3. ACTION TIMELINE */}
         <section>
-          <ActionTimeline />
+          <ActionTimeline isNeedsReview={isNeedsReview} />
         </section>
 
         {/* WEATHER SNAPSHOT */}
@@ -141,12 +141,12 @@ export const AdvisoryDetailPage: React.FC = () => {
 
         {/* 4. WHY THIS RECOMMENDATION? */}
         <section>
-          <RecommendationReason />
+          <RecommendationReason isNeedsReview={isNeedsReview} />
         </section>
 
         {/* 5. MANAGEMENT DETAILS */}
         <section>
-          <ManagementCard />
+          <ManagementCard isNeedsReview={isNeedsReview} />
         </section>
 
         {/* 6. WHAT SHOULD I MONITOR? */}
@@ -156,7 +156,12 @@ export const AdvisoryDetailPage: React.FC = () => {
 
         {/* 7. ASK AGRIPULSE */}
         <section>
-          <AskAgriPulse />
+          <AskAgriPulse
+            cropName={crop.name}
+            conditionName={assessment.primaryCondition.name}
+            isNeedsReview={isNeedsReview}
+            analysisId={analysis.id}
+          />
         </section>
       </div>
     </div>
