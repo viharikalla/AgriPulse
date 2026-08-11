@@ -1,703 +1,1580 @@
-# AgriPulse — Weather-Aware Agricultural AI Decision Support System
+# AgriPulse 🌱
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18.3-cyan.svg)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-22-green.svg)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20M0-green.svg)](https://www.mongodb.com/atlas)
-[![Gemini](https://img.shields.io/badge/Gemini_API-3.5_Flash--Lite-violet.svg)](https://deepmind.google/technologies/gemini/)
-[![Tests](https://img.shields.io/badge/Tests-139_Passing-brightgreen.svg)]()
+> **Weather-Aware Agricultural Decision Support powered by Crop Vision AI**
 
-**AgriPulse** pairs multimodal crop disease vision analysis with hyper-local hourly weather forecasts to calculate optimal, safe intervention windows for smallholder farmers. 
+AgriPulse is a production-oriented agricultural decision-support platform that combines crop-image analysis, agronomic knowledge, micro-weather forecasting, and a deterministic weather-window engine to help farmers make safer field-management decisions.
 
-Instead of generating raw, unverified chemical advice directly from an LLM, AgriPulse enforces a **deterministic agronomic and weather decision pipeline** — guaranteeing that visual AI diagnoses are grounded against validated ICAR/State Agronomic University knowledge bases and evaluated against live meteorological constraints before any treatment advice is delivered.
+**Live Demo:** https://agripulse-project.vercel.app/  
+**GitHub:** https://github.com/viharikalla/AgriPulse
 
 ---
 
-## 1. Project Overview
+## 1. Problem
 
-### The Problem
-Smallholder farmers globally lose 20%–40% of their crop yields to preventable pests and fungal diseases. When symptoms appear on foliage, farmers face two compounding challenges:
-1. **Diagnostic Uncertainty**: Misidentifying fungal diseases (e.g., mistaking *Early Blight* for *Bacterial Spot*) leads to applying wrong chemicals, wasting money, and damaging soil health.
-2. **Weather Risk**: Even with the correct pesticide, spraying immediately before rainfall washes the chemical into local waterways, while spraying during high winds (>12 km/h) causes severe spray drift. Conversely, spraying during extreme heat (>35°C) degrades active chemical ingredients.
+Farmers often have to make crop-management decisions using incomplete information:
 
-### The AgriPulse Solution
-AgriPulse decouples **visual diagnosis** from **action timing calculation**:
-- **Multimodal AI Vision**: Analyzes leaf images using `gemini-3.5-flash-lite` with native structured JSON output to identify crop species and disease conditions.
-- **AI Reliability & Evaluation Layer**: Rejects hallucinated diagnoses, unknown crops, or low-confidence outputs, falling back safely to human field inspection advisories.
-- **Agronomic Knowledge Base**: Cross-references verified disease conditions against official ICAR (Indian Council of Agricultural Research) management protocols.
-- **Live Weather Forecast Integration**: Queries Open-Meteo APIs for 48-hour micro-weather metrics (temperature, relative humidity, wind speed, wind gusts, precipitation, rain probability, and weather codes).
-- **Deterministic Spray Decision Engine**: Evaluates hard safety constraints (wind drift, rainfall wash-off, humidity limits) to identify optimal treatment windows (`ACT_NOW`, `FAVORABLE`, `WAIT`, `NO_SUITABLE_WINDOW`, `INSUFFICIENT_DATA`).
+- A crop symptom may be difficult to identify from a photograph.
+- Weather can make an otherwise reasonable spray decision unsafe or ineffective.
+- Generic AI answers can confidently suggest a disease or treatment without sufficient evidence.
+- Historical field analyses are difficult to organize and revisit.
+- Smallholder farmers need actionable guidance rather than raw model output.
+
+AgriPulse addresses this by separating **visual diagnosis**, **agronomic grounding**, and **weather-based action timing** instead of treating a general-purpose AI response as the final recommendation.
 
 ---
 
-## 2. Key Features
+## 2. Solution
 
-- **Multi-Crop Vision AI**: Supports a 10-crop taxonomy (*Rice, Wheat, Maize, Tomato, Potato, Chilli, Soybean, Groundnut, Chickpea, Cotton*).
-- **Native Gemini Structured Outputs**: Enforces strict Zod schema validation over `gemini-3.5-flash-lite` vision responses.
-- **Deterministic AI Reliability Layer**: Evaluates diagnostic confidence thresholds ($\ge 0.70$), crop-condition taxonomy matches, and image quality metrics.
-- **ICAR-Grounded Agronomy Knowledge**: Includes 53 curated condition entries with symptom lists, differential diagnosis clues, prevention steps, and official sources.
-- **Real-Time Open-Meteo Integration**: Geocoding location search and 48-hour hourly weather forecast modeling with fallback caching and retry mechanisms.
-- **Deterministic Action Window Engine**: Evaluates hard meteorological limits (wind $< 12$ km/h, dry window $\ge 4$ hours, rain probability $< 20\%$) with weighted suitability scoring ($0-100$).
-- **Farmer Authentication & Security**: Secure signup/login with bcrypt password hashing (cost factor 10), password complexity rules, independent Eye/EyeOff toggles, and HttpOnly `agripulse_session` cookies.
-- **Farmer Dashboard & History**: Manages authenticated farmer profiles, historical field analysis archives, and user-isolated advisory lookup (`userId` ownership enforcement).
-- **MongoDB Atlas Persistence**: Dual-mode storage engine using MongoDB Atlas M0 cluster with automatic fallback to `InMemAnalysisStore` for test/offline execution.
-- **Multi-Crop Evaluation Harness**: Automated test suite for multi-crop benchmark image suites (`evaluation/cases.json` and `source-manifest.json`).
-- **Liquid-Glass Design Language**: Custom UI built with Vanilla CSS, Tailwind, Lucide icons, glassmorphism, progressive blur effects, and Framer Motion micro-animations.
+AgriPulse follows this pipeline:
 
----
-
-## 3. Problem $\rightarrow$ Solution Matrix
-
-| Problem | Traditional / Naive AI Approach | AgriPulse Engineered Solution |
-|---|---|---|
-| **Disease Misidentification** | Unassisted farmer guessing or unverified generic image searches | Multimodal Gemini 3.5 Vision paired with strict Zod structured outputs |
-| **LLM Hallucinations & Treatment Errors** | LLM generates unvalidated chemical dosages directly in freeform text | AI is restricted to visual diagnosis; treatment principles are sourced deterministically from ICAR knowledge bases |
-| **Chemical Wash-Off & Rain Loss** | Spraying immediately upon symptom detection regardless of weather | 48-hour Open-Meteo rain probability tracking; enforces a 4-hour dry window after application |
-| **Pesticide Drift Hazards** | Spraying in windy conditions causing drift onto adjacent fields | Hard wind speed limit ($< 12$ km/h) and gust checks ($< 18$ km/h) |
-| **Uncertain / Low-Confidence Images** | LLM forced to output a single guess even when image is blurry or ambiguous | AI Reliability Layer flags diagnoses below $0.70$ confidence as `NEEDS_REVIEW`, recommending field officer inspection |
-| **Data Privacy & Unauthorized Access** | Shared public analysis history exposing farm locations | Strict `userId` session ownership; User B cannot view User A's advisory by modifying URL IDs |
-
----
-
-## 4. How AgriPulse Works
-
-```
- ┌────────────────┐      ┌─────────────────┐      ┌──────────────────┐
- │  Farmer Login  │ ───► │  Upload Leaf    │ ───► │   Select Crop    │
- │  & Authentication    │  Foliage Photo  │      │   & Location     │
- └────────────────┘      └─────────────────┘      └──────────────────┘
-                                                           │
-                                                           ▼
- ┌────────────────┐      ┌─────────────────┐      ┌──────────────────┐
- │ Gemini 3.5     │ ◄─── │ Sharp Image     │ ◄─── │ POST /api/analyze│
- │ Vision Analysis│      │ Optimization    │      │ Pipeline         │
- └───────┬────────┘      └─────────────────┘      └──────────────────┘
-         │
-         ▼
- ┌────────────────┐      ┌─────────────────┐      ┌──────────────────┐
- │ AI Reliability │ ───► │ Agronomy Base   │ ───► │ Open-Meteo 48h   │
- │ Verification   │      │ Knowledge Check │      │ Weather Forecast │
- └────────────────┘      └─────────────────┘      └───────┬──────────┘
-                                                          │
-                                                          ▼
- ┌────────────────┐      ┌─────────────────┐      ┌──────────────────┐
- │ Farmer Advisory│ ◄─── │ MongoDB Atlas   │ ◄─── │ Decision Engine  │
- │ & History Log  │      │ Record Store    │      │ Window Evaluation│
- └────────────────┘      └─────────────────┘      └──────────────────┘
+```text
+Farmer
+  │
+  ├── Select Crop
+  ├── Provide Location
+  └── Upload Crop Image
+          │
+          ▼
+     Image Processing
+          │
+          ▼
+     Gemini Vision AI
+          │
+          ▼
+   Structured Assessment
+          │
+          ▼
+   Reliability Verification
+      │       │       │
+      │       │       └── UNSUPPORTED
+      │       └────────── NEEDS_REVIEW
+      └────────────────── RELIABLE
+          │
+          ▼
+   Agronomy Knowledge Base
+          │
+          ▼
+   Open-Meteo Forecast
+          │
+          ▼
+ Deterministic Decision Engine
+          │
+          ▼
+     Farmer Advisory
+          │
+          ▼
+ MongoDB Atlas + History
 ```
 
+The key safety principle is:
+
+> **AI visual evidence does not directly determine chemical treatment.**
+
+A diagnosis must first be sufficiently reliable and grounded in the AgriPulse crop/condition taxonomy.
+
 ---
 
-## 5. System Architecture
+## 3. Core Features
+
+### 🌿 Multi-Crop Vision Analysis
+
+AgriPulse supports a 10-crop taxonomy:
+
+- Rice
+- Wheat
+- Maize
+- Tomato
+- Potato
+- Chilli
+- Soybean
+- Groundnut
+- Chickpea
+- Cotton
+
+The vision pipeline produces structured assessment information such as:
+
+- observed symptoms
+- candidate condition
+- confidence
+- severity
+- visual evidence
+- reliability status
+
+### 🌦️ Weather-Aware Decisions
+
+AgriPulse combines the field assessment with hourly weather information to determine whether conditions are suitable for action.
+
+The decision engine evaluates:
+
+- wind speed
+- precipitation probability
+- available dry period
+- forecast timing
+
+Decision states:
+
+| Status | Farmer-facing label |
+|---|---|
+| `ACT_NOW` | Good spray window open now |
+| `FAVORABLE` | Favorable weather window available |
+| `WAIT` | Wait for safer weather window |
+| `NO_SUITABLE_WINDOW` | No suitable window in forecast |
+| `INSUFFICIENT_DATA` | Field verification needed |
+
+### 🛡️ AI Reliability Safety Layer
+
+AgriPulse does not blindly trust a vision model.
+
+A result can be:
+
+- **RELIABLE** — sufficiently confident and grounded.
+- **NEEDS_REVIEW** — visual evidence is insufficient.
+- **UNSUPPORTED** — condition cannot be grounded in the current AgriPulse taxonomy.
+
+For uncertain or unsupported diagnoses, the application:
+
+- asks for field verification;
+- avoids disease-specific chemical recommendations;
+- avoids chemical dosage recommendations;
+- avoids inventing an alternative disease;
+- provides non-chemical inspection and monitoring guidance.
+
+### 👨‍🌾 Farmer Authentication
+
+AgriPulse includes:
+
+- signup
+- login
+- logout
+- current-user session
+- password confirmation
+- password visibility toggles
+- server-side validation
+- bcrypt password hashing
+- HttpOnly session cookies
+- rate limiting
+- authenticated route protection
+
+### 📚 Analysis History
+
+Authenticated farmers can:
+
+- view previous field analyses;
+- open individual analysis records;
+- retain uploaded field images;
+- revisit previous advisories;
+- maintain history across sessions and Vercel serverless invocations.
+
+Analysis records are isolated by authenticated `userId`.
+
+### 💬 Ask AgriPulse
+
+The advisory page includes an interactive agronomic assistant.
+
+The assistant receives analysis context and respects the reliability state.
+
+For `NEEDS_REVIEW` or `UNSUPPORTED` analyses, it must not:
+
+- substitute another disease;
+- invent a diagnosis;
+- provide disease-specific chemical dosage;
+- recommend unsupported chemical treatment.
+
+For reliable analyses, contextual agronomic questions can receive disease-specific guidance.
+
+### 🎨 Farmer-Friendly UI
+
+The frontend uses a liquid-glass visual language with:
+
+- progressive blur
+- glass cards
+- motion transitions
+- weather visualizations
+- structured advisory sections
+- responsive layouts
+- accessible controls
+- clear reliability states
+
+---
+
+## 4. Safety Architecture
+
+AgriPulse deliberately separates three concerns.
+
+### Layer 1 — Vision
+
+Gemini analyzes the uploaded crop image and returns structured visual evidence.
+
+### Layer 2 — Reliability & Grounding
+
+The application checks:
+
+- crop compatibility;
+- supported condition;
+- confidence;
+- AgriPulse taxonomy;
+- reliability state.
+
+### Layer 3 — Agronomic Decision
+
+Only grounded information proceeds into the agronomy and weather decision pipeline.
+
+This prevents a low-confidence model output from automatically becoming a chemical recommendation.
+
+---
+
+## 5. NEEDS_REVIEW Safety Contract
+
+When visual evidence is insufficient:
+
+```text
+RELIABILITY STATUS
+       │
+       ▼
+NEEDS_REVIEW
+       │
+       ├── Field inspection
+       ├── Non-chemical sanitation
+       ├── Monitoring
+       └── No disease-specific chemical treatment
+```
+
+The application intentionally displays:
+
+> **AGRONOMIC VERIFICATION NEEDED**
+
+instead of pretending that the diagnosis is certain.
+
+This behavior is enforced in both frontend presentation and backend agronomy services.
+
+---
+
+## 6. Agronomy Knowledge Base
+
+AgriPulse contains crop-specific agronomic knowledge for the supported taxonomy.
+
+The knowledge base includes validated condition profiles covering the supported crop-condition combinations.
+
+The agronomy layer provides structured information used for:
+
+- condition grounding
+- symptom interpretation
+- management actions
+- monitoring guidance
+- treatment-related decision logic where the diagnosis is reliable
+
+The application does not invent missing condition definitions merely to force an AI result into the taxonomy.
+
+For example, the evaluation set contained a Maize Fall Armyworm image, but that condition was excluded from the registered evaluation cases because the current AgriPulse Maize knowledge base does not support it.
+
+---
+
+## 7. Weather Intelligence
+
+AgriPulse uses Open-Meteo for weather intelligence.
+
+The weather pipeline includes:
+
+1. Location input
+2. Location/geocoding resolution
+3. Current weather
+4. Hourly forecast
+5. Forecast-window analysis
+6. Weather suitability scoring
+7. Farmer-facing decision
+
+The application considers a forecast window rather than simply displaying current weather.
+
+### Decision Constraints
+
+The deterministic spray-window engine uses hard constraints including:
+
+- wind below 12 km/h
+- dry window of at least 4 hours
+- rain probability below 20%
+
+These constraints are evaluated alongside forecast timing.
+
+The UI communicates the result in farmer-friendly language instead of exposing only raw meteorological values.
+
+---
+
+## 8. System Architecture
 
 ```mermaid
-graph TD
-    Client["React Frontend (Vite + Glassmorphism UI)"] -->|HTTP / Cookies| Server["Express Node.js Backend"]
-    
-    subgraph Infrastructure ["Infrastructure Layer"]
-        Server --> AuthMw["Auth & Session Middleware"]
-        AuthMw --> Mongo["MongoDB Atlas Cluster / InMem Fallback"]
-    end
-    
-    subgraph AnalysisPipeline ["Field Analysis Pipeline"]
-        Server -->|1. Image Processing| Sharp["Sharp Image Processor"]
-        Server -->|2. Multimodal Vision| Gemini["Gemini 3.5 Flash-Lite Provider"]
-        Gemini -->|3. Raw Diagnosis| Reliability["AI Reliability & Safety Layer"]
-        Reliability -->|4. Agronomic Grounding| Agronomy["Agronomy Knowledge Base (ICAR)"]
-        Server -->|5. 48h Micro-Weather| Weather["Open-Meteo Weather Provider"]
-        Agronomy --> Decision["Deterministic Decision Engine"]
-        Weather --> Decision
-        Decision -->|6. Advisory Payload| Advisory["Field Analysis Advisory Record"]
-    end
+flowchart TB
+    Farmer[Farmer / Browser]
+
+    Frontend[React + TypeScript + Vite]
+    API[Vercel Serverless Express API]
+
+    Auth[Authentication Service]
+    Analysis[Analysis Service]
+    AI[Gemini Vision Provider]
+    Reliability[AI Reliability Service]
+    Agronomy[Agronomy Service]
+    Weather[Open-Meteo Provider]
+    Decision[Decision Engine]
+    Assistant[Ask AgriPulse]
+    Image[Image Processing / Sharp]
+    DB[(MongoDB Atlas)]
+
+    Farmer --> Frontend
+    Frontend --> API
+
+    API --> Auth
+    API --> Analysis
+    API --> Assistant
+    API --> Weather
+
+    Analysis --> Image
+    Analysis --> AI
+    AI --> Reliability
+    Reliability --> Agronomy
+    Agronomy --> Decision
+    Weather --> Decision
+
+    Auth --> DB
+    Analysis --> DB
+    Assistant --> Analysis
 ```
 
 ---
 
-## 6. Tech Stack
+## 9. Technology Stack
 
-| Layer | Technology | Version | Purpose |
-|---|---|---|---|
-| **Frontend Core** | React | 18.3.1 | Single-page application UI framework |
-| **Build System** | Vite | 6.4.3 | Fast frontend compilation & HMR dev server |
-| **Styling** | Vanilla CSS + Tailwind CSS | 3.4.17 | Custom glassmorphism, progressive blur & utilities |
-| **Motion** | Framer Motion | 12.2.0 | Smooth micro-animations and page transitions |
-| **Icons** | Lucide React | 0.469.0 | Agricultural and dashboard iconography |
-| **Backend Runtime** | Node.js + Express | 22.x / 4.21.2 | Server REST API foundation |
-| **Language** | TypeScript | 5.7.3 | End-to-end static type safety |
-| **AI Vision Model** | Google Gemini API | `gemini-3.5-flash-lite` | Multimodal crop leaf disease recognition |
-| **Weather API** | Open-Meteo Forecast & Geocoding | Public V1 APIs | Live 48-hour hourly weather data |
-| **Database** | MongoDB Atlas / Mongoose | 8.9.5 | Persistent user & analysis record store |
-| **Authentication** | bcryptjs + jsonwebtoken | 2.4.3 / 9.0.2 | Password hashing & HttpOnly cookie sessions |
-| **Image Processing** | Sharp | 0.33.5 | Buffer resizing, EXIF stripping, JPEG optimization |
-| **Validation** | Zod | 3.24.1 | Schema validation for API payloads & AI outputs |
-| **Testing** | Vitest + Supertest | 2.1.9 / 7.0.0 | Unit, integration, and security testing |
-
----
-
-## 7. Frontend Architecture
-
-- **Modular Directory Layout**:
-  - `src/pages/`: `HomePage`, `LoginPage`, `SignupPage`, `DashboardPage`, `AnalyzePage`, `AdvisoryDetailPage`, `HistoryPage`, `HistoryDetailPage`, `NotFoundPage`.
-  - `src/components/ui/`: Glassmorphic UI library (`Card`, `Button`, `Badge`, `Modal`, `Input`, `PasswordInput`, `SegmentedControl`, `WeatherBar`).
-  - `src/context/`: `AuthContext.tsx` managing global user state, session restoration, login, signup, and logout.
-  - `src/services/`: `ApiClient.ts` (API fetch client with `credentials: 'include'`), `advisoryService.ts`.
-- **Protected Route Guard (`ProtectedRoute.tsx`)**: Redirects unauthenticated users attempting to access `/dashboard`, `/analyze`, `/history`, or `/advisory/:id` to `/login`.
-- **Liquid-Glass Design System**: Custom HSL dark palette (`#07130F` background, `#B9E48C` living green accent), backdrop blur filters (`backdrop-blur-md`), and progressive border highlights.
+| Layer | Technology |
+|---|---|
+| Frontend | React |
+| Language | TypeScript |
+| Build Tool | Vite |
+| Styling | Tailwind CSS |
+| Backend | Node.js + Express |
+| Database | MongoDB Atlas |
+| ODM | Mongoose |
+| Vision AI | Google Gemini |
+| Validation | Zod |
+| Image Processing | Sharp |
+| Authentication | JWT + HttpOnly cookies |
+| Password Hashing | bcryptjs |
+| Weather | Open-Meteo |
+| Testing | Vitest + Supertest |
+| Deployment | Vercel |
 
 ---
 
-## 8. Backend Architecture
+## 10. Frontend Architecture
 
-- **Controller-Service-Provider Pattern**:
-  - `server/src/controllers/`: `authController.ts`, `analysisController.ts`, `weatherController.ts`, `locationController.ts`, `decisionController.ts`.
-  - `server/src/services/`: `AnalysisService`, `AuthService`, `AgronomyService`, `AIReliabilityService`, `ImageProcessingService`, `LocationService`.
-  - `server/src/providers/`: `GeminiVisionProvider`, `MockAIProvider`, `OpenMeteoProvider`.
-  - `server/src/db/`: `connection.ts` managing MongoDB Mongoose lifecycle and password masking.
-  - `server/src/middleware/`: `authMiddleware.ts` (`requireAuth`, `optionalAuth`), `rateLimiter.ts`, `sessionMiddleware.ts`, `errorHandler.ts`.
-
----
-
-## 9. AI Architecture & Safety Pipeline
-
-AgriPulse uses a **hybrid AI architecture** where LLMs handle visual perception while deterministic code handles agronomic rules and decision logic.
-
-```
-       Raw Image Buffer
-              │
-              ▼
-   [Gemini Vision Provider] ───► Native Structured Output JSON (Zod Validated)
-              │
-              ▼
-  [AI Reliability Service] ───► Evaluates Confidence (≥0.70) & Crop Taxonomy Match
-              │
-              ├───► Low Confidence / Mismatch ───► [NEEDS_REVIEW Response] (Field Officer Verification)
-              │
-              └───► Valid & Reliable ───► [Agronomy Grounding] ───► [Decision Engine]
+```text
+src/
+├── components/
+│   ├── advisory/
+│   ├── ai/
+│   ├── auth/
+│   ├── field/
+│   ├── layout/
+│   ├── motion/
+│   ├── ui/
+│   └── weather/
+├── config/
+├── context/
+├── data/
+├── hooks/
+├── lib/
+├── pages/
+├── services/
+├── test/
+├── types/
+├── App.tsx
+├── index.css
+└── main.tsx
 ```
 
-### Why AgriPulse Does Not Blindly Trust LLMs
-1. **Hallucination Prevention**: LLMs frequently generate chemical dosages or brand names that do not exist or are illegal in specific agricultural jurisdictions.
-2. **Deterministic Guarantee**: By restricting Gemini strictly to identifying visual symptoms and assigning a confidence score, treatment principles are pulled deterministically from validated ICAR knowledge entries.
+### Important frontend pages
+
+- `HomePage`
+- `LoginPage`
+- `SignupPage`
+- `DashboardPage`
+- `AnalyzePage`
+- `AdvisoryDetailPage`
+- `HistoryPage`
+- `HistoryDetailPage`
+
+### Authentication
+
+`AuthContext` manages the authenticated farmer state.
+
+`ProtectedRoute` protects:
+
+- dashboard
+- analysis
+- history
+- advisory detail
+
+Session credentials are handled through cookies rather than localStorage.
 
 ---
 
-## 10. Agronomy Knowledge Base
+## 11. Backend Architecture
 
-The production knowledge base (`server/src/data/agronomy/`) contains **53 validated condition entries** across 10 crops:
-
-- **Rice**: Healthy, Leaf Blast (`rice_leaf_blast`), Brown Spot, Bacterial Leaf Blight, Sheath Blight.
-- **Wheat**: Healthy, Yellow Rust (`wheat_yellow_rust`), Brown Rust, Loose Smut, Tan Spot.
-- **Maize**: Healthy, Common Rust, Gray Leaf Spot, Northern Leaf Blight.
-- **Tomato**: Healthy, Early Blight (`tomato_early_blight`), Late Blight, Leaf Mold, Septoria Leaf Spot, Bacterial Spot, Yellow Leaf Curl.
-- **Potato**: Healthy, Early Blight (`potato_early_blight`), Late Blight.
-- **Chilli**: Healthy, Leaf Curl (`chilli_leaf_curl`), Anthracnose / Fruit Rot, Bacterial Leaf Spot, Cercospora Leaf Spot.
-- **Soybean**: Healthy, Bacterial Blight (`soybean_bacterial_blight`), Frogeye Leaf Spot, Septoria Brown Spot.
-- **Groundnut**: Healthy, Early Leaf Spot / Tikka (`groundnut_early_leaf_spot`), Late Leaf Spot, Rust.
-- **Chickpea**: Healthy, Ascochyta Blight, Fusarium Wilt, Dry Root Rot.
-- **Cotton**: Healthy, Bacterial Blight / Black Arm (`cotton_bacterial_blight`), Alternaria Leaf Spot, Fusarium Wilt.
-
----
-
-## 11. Weather Intelligence
-
-AgriPulse integrates with Open-Meteo APIs to model micro-weather conditions for field locations:
-- **Location Geocoding**: Converts city/district names (e.g., *"Vijayawada"*, *"Ludhiana"*) to exact latitude/longitude coordinates.
-- **48-Hour Hourly Metrics**: Fetches temperature (°C), relative humidity (%), precipitation (mm), precipitation probability (%), wind speed (km/h), wind gusts (km/h), and weather codes.
-- **Resilience**: In-memory caching (15-minute TTL) and automatic retries prevent API throttling or temporary downtime from disrupting analysis requests.
-
----
-
-## 12. Deterministic Spray Decision Engine
-
-The Decision Engine (`server/src/services/decisionEngine.ts`) evaluates hourly weather forecasts against crop-disease spray sensitivity constraints:
-
-### Hard Constraints & Rules
-- **Wind Drift Limit**: Wind speed must be $< 12$ km/h (and wind gusts $< 18$ km/h).
-- **Rain Wash-Off Protection**: Requires a minimum 4-hour continuous dry window after application with precipitation probability $< 20\%$.
-- **Temperature & Humidity**: Temperature must be between 15°C and 35°C; relative humidity between 40% and 85%.
-
-### Status Ratings
-- `ACT_NOW`: Favorable conditions detected within the next 4 hours ($Score \ge 80$).
-- `FAVORABLE`: Favorable window detected within 12–24 hours ($Score \ge 70$).
-- `WAIT`: Adverse weather currently active (high wind, imminent rain); spray delayed.
-- `NO_SUITABLE_WINDOW`: No valid 4-hour spray window detected in the 48-hour forecast.
-- `INSUFFICIENT_DATA`: Low diagnostic confidence or unsupported condition; treatment postponed until field inspection.
-
----
-
-## 13. AI Reliability & Safety System
-
-When visual evidence is ambiguous, AgriPulse prioritizes farmer safety over forced classification:
-
-| Scenario | AI Reliability Status | Action Taken |
-|---|---|---|
-| Confidence $\ge 0.70$ & Valid Crop Match | `RELIABLE` | Executes full Decision Engine advisory |
-| Confidence $< 0.70$ | `NEEDS_REVIEW` | Issues non-treatment advisory; advises KVK / extension officer field check |
-| Unsupported Crop or Disease | `UNSUPPORTED` | Flags unsupported profile; provides general field sanitation guidance |
-| Corrupt / Blurry Image | `INVALID_IMAGE` | Rejects payload at API boundary before invoking AI inference |
-
----
-
-## 14. Authentication & Security Implementation
-
-- **Password Hashing**: `bcryptjs` with cost factor 10. Plaintext passwords and `passwordHash` strings are **never** logged or returned in responses.
-- **Cookie Security**: `HttpOnly`, `SameSite=Lax`, `Secure` (in production) cookies prevent XSS session hijacking.
-- **Session Ownership Isolation**: All analysis records store `userId`. Endpoint `GET /api/analysis/:id` verifies `analysis.userId === req.user.id`, returning `404 Not Found` for unauthorized requests.
-- **Secret Isolation**: `GEMINI_API_KEY` and `MONGODB_URI` exist strictly on the backend (`server/.env`). Neither key is exposed to the frontend build bundle.
-- **API Protection**: Helmet security headers, CORS origin restriction, and rate limiters on `/api/auth/login`, `/api/auth/signup`, and `/api/analyze`.
-
----
-
-## 15. Database Schema & Indexing
-
-AgriPulse utilizes MongoDB Atlas M0 with Mongoose models (`server/src/models/`):
-
-### User Collection (`users`)
-- `_id`: Unique ObjectId.
-- `name`: String (trimmed).
-- `email`: String (unique index, lowercase, trimmed).
-- `passwordHash`: String (bcrypt hash).
-- `createdAt`, `updatedAt`: ISO timestamps.
-
-### Analysis Collection (`analyses`)
-- `_id`: Unique Advisory ID string (`adv-...`).
-- `sessionId`: String (index).
-- `userId`: String (index for user ownership queries).
-- `crop.name`: String (index).
-- `photoUrl`: Unsplash reference URL (raw image binary buffers are **not** stored in MongoDB).
-- `assessment`, `weatherSnapshot`, `decision`, `managementActions`, `sourceMetadata`: Embedded document structures.
-- `createdAt`: ISO timestamp (index).
-
-**Compound Indexes**:
-```ts
-{ sessionId: 1, createdAt: -1 }
-{ userId: 1, createdAt: -1 }
-{ _id: 1, userId: 1 }
-{ 'crop.name': 1, createdAt: -1 }
+```text
+server/src/
+├── config/
+├── controllers/
+├── data/
+│   └── agronomy/
+├── db/
+├── middleware/
+├── models/
+├── providers/
+│   ├── ai/
+│   └── weather/
+├── routes/
+├── schemas/
+├── services/
+│   ├── agronomy/
+│   ├── ai/
+│   ├── analysis/
+│   ├── auth/
+│   ├── decision/
+│   └── ...
+├── types/
+├── utils/
+├── app.ts
+└── server.ts
 ```
 
----
+### Layering
 
-## 16. Evaluation Dataset & Benchmark Harness
+```text
+Routes
+  ↓
+Controllers
+  ↓
+Services
+  ↓
+Providers / Models
+  ↓
+External Services / MongoDB
+```
 
-AgriPulse includes a multi-crop vision evaluation harness (`server/evaluation/`) for measuring AI diagnostic accuracy across real field photos:
+`server/src/app.ts` creates and exports the Express application.
 
-- **Benchmark Cases (`server/evaluation/cases.json`)**: Contains 8 grounded evaluation cases across Rice, Wheat, Tomato, Potato, Chilli, Soybean, Groundnut, and Cotton.
-- **Provenance Manifest (`server/evaluation/source-manifest.json`)**: Tracks source dataset origin (Digital Green, ICAR-IIWBR, PlantVillage, ICAR-IIHR, Project-AgML, ICAR-CICR Nagpur) and CC-BY-4.0 licenses for all 9 evaluation images.
-- **Explicit Exclusions**:
-  - *Maize Fall Armyworm* (`maize-fall-armyworm-01.jpg`): Verified as present in evaluation image folder but intentionally excluded from `cases.json` because pest damage is not currently supported in `MAIZE_KNOWLEDGE`. Recorded as `NOT_CURRENTLY_SUPPORTED_BY_AGRIPULSE_TAXONOMY` in source manifest.
-  - *Chickpea*: Excluded from this evaluation batch (0 images registered).
-- **Execution Script**:
-  ```bash
-  cd server
-  npx tsx scripts/run-evaluation.ts
-  ```
+`server/src/server.ts` is used for local development.
 
----
-
-## 17. Test Suite & Verification Matrix
-
-The codebase includes **139 automated unit and integration tests** across 22 test files:
-
-| Test Suite | File Path | Tests | Coverage Scope |
-|---|---|---|---|
-| **Backend Auth Suite** | `server/tests/authService.test.ts` | 11 | Signup validation, bcrypt hashing, login, cookie setting, `/me`, logout |
-| **Backend Analysis Ownership** | `server/tests/analysisOwnership.test.ts` | 3 | User A vs User B analysis isolation, unauthorized access blocking |
-| **Backend Database Service** | `server/tests/databaseService.test.ts` | 7 | URI masking, empty URI fallback, `InMemAnalysisStore`, schema indexes |
-| **Backend Eval Image Validation** | `server/tests/evaluationImageValidation.test.ts` | 9 | Image existence, taxonomy check, agronomy grounding, path safety |
-| **Backend Gemini Provider** | `server/tests/geminiVisionProvider.test.ts` | 14 | Gemini API requests, Zod parsing, error handling, rate limits |
-| **Backend Gemini Integration** | `server/tests/geminiIntegration.test.ts` | 8 | End-to-end `AnalysisService` execution with Mock and Gemini providers |
-| **Backend Evaluation Harness** | `server/tests/evaluationHarness.test.ts` | 8 | Harness metric calculation, case filters, limit flags, error recording |
-| **Backend Agronomy Knowledge** | `server/tests/agronomyKnowledge.test.ts` | 7 | 10-crop taxonomy coverage, condition lookup, recommendation grounding |
-| **Backend Open-Meteo Provider** | `server/tests/openMeteoProvider.test.ts` | 5 | Geocoding resolution, forecast mapping, dry window calculation |
-| **Backend Security & Config** | `server/tests/securityAndPipeline.test.ts` | 7 | Environment parsing, CORS rules, coordinate isolation |
-| **Backend API Endpoints** | `server/tests/api.test.ts` | 4 | Health check, location search, decision evaluation |
-| **Backend Validation Schemas** | `server/tests/validation.test.ts` | 5 | Zod input schema parsing & error handling |
-| **Backend Crop Taxonomy** | `server/tests/cropTaxonomy.test.ts` | 4 | Crop name validation and listing |
-| **Backend Provider Abstraction** | `server/tests/providers.test.ts` | 3 | Factory provider resolution |
-| **Backend Location Service** | `server/tests/locationService.test.ts` | 3 | City search & fallback location behavior |
-| **Frontend Auth & Password** | `src/__tests__/auth.test.tsx` | 4 | Signup validation, password mismatch, Eye/EyeOff toggle |
-| **Frontend API Integration** | `src/__tests__/apiIntegration.test.tsx` | 7 | Image selection, form submission, advisory rendering |
-| **Frontend App Routing** | `src/__tests__/App.test.tsx` | 1 | Router setup and root page rendering |
-| **Frontend Button UI** | `src/__tests__/Button.test.tsx` | 4 | Button variants, loading states, click events |
-| **Frontend Crop Constants** | `src/__tests__/crops.test.ts` | 3 | Crop taxonomy helper functions |
-| **Total Test Suite** | **22 Test Files** | **139** | **100% PASS (120 Backend + 19 Frontend)** |
-
-### Quality Gate Summary
-- **Backend TypeScript (`cd server && npx tsc --noEmit`)**: 0 errors
-- **Frontend TypeScript (`npx tsc --noEmit`)**: 0 errors
-- **Backend Production Build (`cd server && npm run build`)**: `server/dist/` compiled cleanly
-- **Frontend Production Build (`npm run build`)**: `dist/` compiled cleanly
+The Vercel serverless entrypoint uses the compiled backend application.
 
 ---
 
-## 18. Environment Variables
+## 12. AI Provider Architecture
 
-| Variable | Required | Purpose | Where Used |
-|---|---|---|---|
-| `NODE_ENV` | Optional | Set execution environment (`development`, `test`, `production`) | Server / Config |
-| `PORT` | Optional | Express server HTTP port (default: `5001`) | Server |
-| `MONGODB_URI` | Optional | MongoDB Atlas connection string | Server / Database |
-| `SESSION_SECRET` | Required | JWT secret for session token signing | Server / Auth |
-| `CLIENT_ORIGIN` | Required | Allowed CORS origin (default: `http://localhost:3000`) | Server / CORS |
-| `AI_PROVIDER` | Required | AI Provider selector (`mock` or `gemini`) | Server / Config |
-| `GEMINI_API_KEY` | Conditional | Google Gemini API key (Required if `AI_PROVIDER=gemini`) | Server / Gemini Provider |
-| `GEMINI_MODEL` | Optional | Gemini vision model name (default: `gemini-3.5-flash-lite`) | Server / Gemini Provider |
-| `GEMINI_TIMEOUT_MS` | Optional | AI request timeout in milliseconds (default: `15000`) | Server / Config |
-| `GEMINI_MIN_CONFIDENCE` | Optional | Minimum acceptable diagnostic confidence (default: `0.7`) | Server / Reliability |
+AgriPulse uses a provider abstraction:
 
-> [!IMPORTANT]
-> Never commit `server/.env` to Git. Keep template keys in `server/.env.example`.
+```text
+AIProvider
+├── GeminiVisionProvider
+└── MockAIProvider
+```
+
+This makes the application testable without consuming Gemini API quota.
+
+### Production
+
+```text
+AI_PROVIDER=gemini
+```
+
+### Tests / local safe mode
+
+```text
+AI_PROVIDER=mock
+```
+
+The mock provider allows the majority of automated tests to execute without real Gemini calls.
 
 ---
 
-## 19. Local Development Setup
+## 13. Gemini Vision Pipeline
+
+The production vision flow is:
+
+```text
+Uploaded image
+      ↓
+Multer memory storage
+      ↓
+Image validation
+      ↓
+Sharp processing
+      ↓
+Gemini Vision
+      ↓
+Structured output
+      ↓
+Zod validation
+      ↓
+Reliability verification
+      ↓
+Agronomy grounding
+```
+
+Raw image buffers are not stored in MongoDB.
+
+The current implementation persists the optimized image representation as a Data URL so the advisory and history pages can render the original uploaded field image without relying on browser-only object URLs.
+
+---
+
+## 14. Database Architecture
+
+MongoDB Atlas stores authenticated users and analysis records.
+
+### Users
+
+Conceptually:
+
+```text
+User
+├── _id
+├── name
+├── email
+├── passwordHash
+├── createdAt
+└── updatedAt
+```
+
+Passwords are stored as bcrypt hashes and never returned to the frontend.
+
+### Analyses
+
+Conceptually:
+
+```text
+Analysis
+├── _id
+├── userId
+├── sessionId
+├── createdAt
+├── location
+├── latitude
+├── longitude
+├── crop
+├── photoUrl
+├── assessment
+├── weatherSnapshot
+├── decision
+├── managementActions
+├── sourceMetadata
+└── notes
+```
+
+The application uses a custom string analysis ID such as:
+
+```text
+adv-<timestamp>
+```
+
+The schema explicitly supports string `_id` values.
+
+### Indexing
+
+Indexes support:
+
+- session history
+- analysis detail lookup
+- crop-filtered history
+- ownership-related queries
+
+---
+
+## 15. Authentication & Security
+
+### Password requirements
+
+Passwords require:
+
+- minimum 8 characters
+- uppercase letter
+- lowercase letter
+- number
+- special character
+
+Confirm password must exactly match the password.
+
+### Session
+
+Authentication uses:
+
+```text
+agripulse_session
+```
+
+The session is stored in an HttpOnly cookie.
+
+Production cookies use secure transport.
+
+### Security controls
+
+AgriPulse includes:
+
+- bcrypt password hashing
+- HttpOnly cookies
+- SameSite cookie protection
+- authentication middleware
+- ownership checks
+- rate limiting
+- CORS restrictions
+- Helmet security headers
+- sanitized error responses
+- server-only environment secrets
+
+Secrets are never embedded in frontend source code.
+
+---
+
+## 16. Analysis Ownership
+
+Every authenticated analysis is associated with a user.
+
+For example:
+
+```text
+User A
+ ├── Analysis 1
+ ├── Analysis 2
+ └── Analysis 3
+
+User B
+ ├── Analysis 4
+ └── Analysis 5
+```
+
+User A cannot access User B's analysis by changing the analysis ID.
+
+Unauthorized access is handled as a safe not-found response rather than exposing another user's record.
+
+---
+
+## 17. History Persistence
+
+The production history pipeline is:
+
+```text
+POST /api/analyze
+       ↓
+Authenticated userId
+       ↓
+MongoDB Analysis document
+       ↓
+GET /api/history
+       ↓
+find({ userId })
+       ↓
+HistoryPage
+```
+
+The history endpoint is explicitly non-cacheable because it contains personalized data.
+
+Responses use:
+
+```text
+Cache-Control: private, no-cache, no-store, must-revalidate
+Pragma: no-cache
+Expires: 0
+```
+
+This prevents stale empty-history responses from being reused by the browser.
+
+---
+
+## 18. API Endpoints
+
+### Authentication
+
+```text
+POST /api/auth/signup
+POST /api/auth/login
+POST /api/auth/logout
+GET  /api/auth/me
+```
+
+### Analysis
+
+```text
+POST /api/analyze
+GET  /api/analysis/:id
+GET  /api/history
+```
+
+### Weather
+
+```text
+GET /api/weather
+```
+
+### Location
+
+```text
+GET /api/location/*
+```
+
+### Decision
+
+```text
+GET /api/decision/*
+```
+
+### Assistant
+
+```text
+POST /api/assistant/*
+```
+
+### Health
+
+```text
+GET /api/health
+```
+
+The exact request and response structures are implemented in the corresponding Zod schemas, controllers, services, and API client.
+
+---
+
+## 19. Image Handling
+
+Images are processed in memory.
+
+```text
+Browser
+  ↓
+Multipart upload
+  ↓
+Multer memoryStorage
+  ↓
+Sharp
+  ↓
+Optimized image
+  ↓
+Gemini
+  ↓
+Persisted Data URL
+```
+
+No temporary image files are required by the production analysis pipeline.
+
+Client and server validation prevent unsupported or oversized uploads from entering the analysis pipeline.
+
+---
+
+## 20. Evaluation Harness
+
+AgriPulse includes a separate multi-crop vision evaluation harness.
+
+```text
+server/evaluation/
+├── cases.json
+├── schema.ts
+├── source-manifest.json
+└── images/
+    ├── rice/
+    ├── wheat/
+    ├── maize/
+    ├── tomato/
+    ├── potato/
+    ├── chilli/
+    ├── soybean/
+    ├── groundnut/
+    ├── chickpea/
+    └── cotton/
+```
+
+The harness is intentionally isolated from normal application startup and API requests.
+
+It is explicitly invoked from the command line.
+
+Example:
+
+```bash
+cd server
+npx tsx scripts/evaluate-vision-set.ts --limit 5
+```
+
+Quota protection prevents accidental large Gemini evaluations.
+
+---
+
+## 21. Evaluation Dataset
+
+The current registered evaluation batch contains grounded cases across supported crops.
+
+The evaluation infrastructure tracks:
+
+- crop
+- expected condition
+- image path
+- dataset/source
+- image quality
+- notes
+- crop agreement
+- diagnostic agreement
+- reliability outcome
+
+An unsupported Maize Fall Armyworm image was retained in provenance tracking but excluded from the grounded evaluation cases because that condition is not currently supported by the AgriPulse Maize knowledge base.
+
+Chickpea was excluded from the registered evaluation batch.
+
+---
+
+## 22. Testing
+
+Testing is a major part of the project.
+
+The current quality gate includes:
+
+### Frontend
+
+```text
+19 / 19 tests passing
+```
+
+### Backend
+
+```text
+131 / 131 tests passing
+```
+
+### Total
+
+```text
+150 / 150 tests passing
+```
+
+Additional verification includes:
+
+```bash
+npx tsc --noEmit
+npm run build
+
+cd server
+npx tsc --noEmit
+npm run build
+```
+
+All reported production quality gates pass with zero TypeScript errors.
+
+### Tested areas
+
+The test suite covers:
+
+- authentication
+- signup validation
+- login
+- password rules
+- password visibility UI
+- protected routes
+- API integration
+- crop taxonomy
+- agronomy knowledge
+- AI reliability
+- treatment leakage prevention
+- analysis ownership
+- MongoDB persistence
+- custom string analysis IDs
+- history retrieval
+- history caching
+- weather providers
+- Open-Meteo schemas
+- decision engine
+- evaluation harness
+- evaluation images
+- security/pipeline behavior
+- Gemini provider integration
+
+---
+
+## 23. Local Development
 
 ### Prerequisites
-- Node.js 20.x or 22.x
-- npm 10.x
 
-### Step-by-Step Installation
+- Node.js
+- npm
+- MongoDB Atlas account for production persistence
+- Gemini API key for real vision analysis
 
-1. **Clone Repository**:
-   ```bash
-   git clone https://github.com/viharikalla/AgriPulse.git
-   cd AgriPulse
-   ```
+### Clone
 
-2. **Install Frontend Dependencies**:
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/viharikalla/AgriPulse.git
+cd AgriPulse
+```
 
-3. **Install Backend Dependencies**:
-   ```bash
-   cd server
-   npm install
-   cd ..
-   ```
+### Install frontend dependencies
 
-4. **Configure Environment Variables**:
-   ```bash
-   cp server/.env.example server/.env
-   ```
-   *(Optional: Add your `MONGODB_URI` or `GEMINI_API_KEY` in `server/.env` if testing real database or Gemini API calls. By default, `AI_PROVIDER=mock` and in-memory storage run automatically without external keys).*
+```bash
+npm install
+```
 
-5. **Start Development Servers**:
-   - **Backend Server** (Port 5001):
-     ```bash
-     cd server
-     npm run dev
-     ```
-   - **Frontend App** (Port 3000):
-     ```bash
-     # In a new terminal window at project root
-     npm run dev
-     ```
+### Install backend dependencies
 
-6. **Run Test Suites**:
-   - **Backend Tests**:
-     ```bash
-     cd server
-     npx vitest run
-     ```
-   - **Frontend Tests**:
-     ```bash
-     npx vitest run
-     ```
+```bash
+cd server
+npm install
+cd ..
+```
 
-7. **Verify Production Builds**:
-   ```bash
-   # Backend Build
-   cd server && npm run build && cd ..
+### Configure backend environment
 
-   # Frontend Build
-   npm run build
-   ```
+Copy:
 
----
+```text
+server/.env.example
+```
 
-## 20. API Endpoint Reference
+to:
 
-### Authentication Endpoints
+```text
+server/.env
+```
 
-#### `POST /api/auth/signup`
-- **Auth**: None
-- **Request Body**:
-  ```json
-  {
-    "name": "Vihari Kalla",
-    "email": "farmer@agripulse.io",
-    "password": "Password123!",
-    "confirmPassword": "Password123!"
-  }
-  ```
-- **Response (201 Created)**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "user": {
-        "id": "67a90...",
-        "name": "Vihari Kalla",
-        "email": "farmer@agripulse.io",
-        "createdAt": "2026-08-11T12:00:00.000Z"
-      }
-    }
-  }
-  ```
+Configure the required server-side values.
 
-#### `POST /api/auth/login`
-- **Auth**: None
-- **Request Body**:
-  ```json
-  {
-    "email": "farmer@agripulse.io",
-    "password": "Password123!"
-  }
-  ```
-- **Response (200 OK)**: Returns user object and sets HttpOnly `agripulse_session` cookie.
+Example structure:
 
-#### `GET /api/auth/me`
-- **Auth**: HttpOnly Session Cookie or Bearer Token
-- **Response (200 OK)**: Returns current authenticated user profile.
+```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your_server_side_key
+GEMINI_MODEL=your_configured_model
+MONGODB_URI=your_mongodb_atlas_connection_string
+AUTH_SESSION_SECRET=your_long_random_secret
+NODE_ENV=development
+CLIENT_ORIGIN=http://localhost:5173
+```
+
+Never commit `server/.env`.
+
+### Run frontend
+
+```bash
+npm run dev
+```
+
+### Run backend
+
+```bash
+cd server
+npm run dev
+```
+
+The local backend runs on the configured development port.
 
 ---
 
-### Analysis & Weather Endpoints
+## 24. Production Deployment
 
-#### `POST /api/analyze`
-- **Auth**: Optional (Attaches `userId` if logged in)
-- **Request Format**: `multipart/form-data`
-  - `image`: File (JPEG, PNG, WebP $\le 10$ MB)
-  - `crop`: Supported Crop Name (e.g., `"Tomato"`)
-  - `location`: Field Location String (e.g., `"Vijayawada"`)
-  - `latitude`: Optional Number
-  - `longitude`: Optional Number
-- **Response (200 OK)**: Returns complete `FieldAnalysis` object with diagnostic assessment, weather snapshot, decision status, and action window recommendations.
+AgriPulse is deployed as a Vercel application.
 
-#### `GET /api/analysis/:id`
-- **Auth**: Optional / User Ownership Enforced
-- **Response (200 OK)**: Returns requested advisory record if owned by session/user.
+### Production architecture
 
-#### `GET /api/history`
-- **Auth**: Optional / User Ownership Enforced
-- **Response (200 OK)**: Returns array of recent field analyses for the authenticated user or session.
+```text
+                    Vercel
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+   React/Vite SPA             Express API
+        │                           │
+     /index.html                /api/*
+                                    │
+                       ┌────────────┼────────────┐
+                       │            │            │
+                   Gemini       MongoDB      Open-Meteo
+```
 
-#### `GET /api/location/search?q=:query`
-- **Auth**: None
-- **Response (200 OK)**: Geocoded location results from Open-Meteo API.
+### Vercel files
+
+```text
+vercel.json
+api/index.ts
+```
+
+`api/index.ts` acts as the serverless entrypoint for the compiled Express backend.
+
+The frontend remains a Vite SPA.
+
+### SPA routing
+
+Vercel rewrites frontend routes to:
+
+```text
+/index.html
+```
+
+API requests are routed separately to the serverless function.
 
 ---
 
-## 21. Deployment Status
+## 25. Production Environment Variables
 
-- **Current Status**: **Deployment Preparation Complete** (Production builds verified, MongoDB Atlas infrastructure connected, CORS/cookie security configured).
-- **Planned Target**: Deployment to Vercel (Frontend & Serverless Express Backend) + MongoDB Atlas M0 + Open-Meteo APIs.
+The following values must be configured as **Vercel server-side environment variables**:
+
+```text
+GEMINI_API_KEY
+MONGODB_URI
+AUTH_SESSION_SECRET
+AI_PROVIDER
+GEMINI_MODEL
+NODE_ENV
+CLIENT_ORIGIN
+```
+
+Do not put these values in:
+
+- React source code
+- `src/`
+- `vercel.json`
+- README
+- Git commits
+- browser localStorage
+- browser sessionStorage
+
+The frontend does not require access to the Gemini API key or MongoDB credentials.
 
 ---
 
-## 22. Security & Secret Management
+## 26. Production Security Checklist
 
-- **Git Isolation**: `server/.env` is strictly gitignored.
-- **Key Safety**: `GEMINI_API_KEY` and `MONGODB_URI` exist only in server environments.
-- **CORS Rules**: Explicitly set to `CLIENT_ORIGIN`.
-- **Error Sanitization**: Error middleware strips API keys and sensitive database connection strings before returning responses to clients.
+Before deployment:
+
+- [x] Gemini key kept server-side
+- [x] MongoDB credentials kept server-side
+- [x] Authentication secret kept server-side
+- [x] `.env` ignored by Git
+- [x] Passwords hashed
+- [x] Password hashes excluded from API responses
+- [x] HttpOnly authentication cookie
+- [x] User ownership checks
+- [x] Auth rate limiting
+- [x] CORS restricted to the application origin
+- [x] Security headers enabled
+- [x] Personalized history marked non-cacheable
+- [x] Treatment leakage regression tests
+- [x] No raw API credentials in frontend
 
 ---
 
-## 23. Project Directory Tree
+## 27. Farmer User Flow
+
+A typical farmer workflow is:
+
+```text
+1. Open AgriPulse
+        ↓
+2. Sign up / Log in
+        ↓
+3. Open Analyze Field
+        ↓
+4. Select crop
+        ↓
+5. Enter field location
+        ↓
+6. Upload crop image
+        ↓
+7. Start analysis
+        ↓
+8. Gemini analyzes visual evidence
+        ↓
+9. Reliability layer verifies result
+        ↓
+10. Agronomy knowledge grounds the condition
+        ↓
+11. Weather service retrieves forecast
+        ↓
+12. Decision engine evaluates weather window
+        ↓
+13. Advisory is displayed
+        ↓
+14. Farmer can ask AgriPulse questions
+        ↓
+15. Analysis is stored in History
+```
+
+---
+
+## 28. Advisory Structure
+
+A completed advisory can contain:
+
+1. **Diagnosis**
+2. **Action Card**
+3. **Action Timeline**
+4. **Weather Snapshot**
+5. **Recommendation Reason**
+6. **Management Details**
+7. **Monitoring Checklist**
+8. **Ask AgriPulse**
+
+For uncertain diagnoses, the interface switches to a verification-oriented experience rather than presenting a confident treatment plan.
+
+---
+
+## 29. Example Reliability States
+
+### RELIABLE
+
+```text
+Diagnosis
+    ↓
+Grounded condition
+    ↓
+Agronomic management
+    ↓
+Weather decision
+    ↓
+Action window
+```
+
+### NEEDS_REVIEW
+
+```text
+Insufficient visual evidence
+    ↓
+Field inspection
+    ↓
+Non-chemical management
+    ↓
+Monitoring
+    ↓
+No disease-specific chemical treatment
+```
+
+### UNSUPPORTED
+
+```text
+Condition outside current taxonomy
+    ↓
+Unsupported condition notice
+    ↓
+Field verification
+    ↓
+No invented diagnosis
+```
+
+---
+
+## 30. Why the Architecture Uses a Deterministic Decision Engine
+
+A general-purpose language model is not used to decide whether weather conditions are suitable for spraying.
+
+Instead:
+
+```text
+Weather Forecast
+      ↓
+Deterministic Constraints
+      ↓
+Decision Status
+```
+
+This makes critical weather-window behavior:
+
+- predictable
+- testable
+- explainable
+- reproducible
+
+The AI is responsible for visual interpretation and contextual language, while hard meteorological constraints remain in application code.
+
+---
+
+## 31. Why AI Provider Abstraction Matters
+
+The application separates AI integration behind an interface.
+
+Benefits:
+
+- production Gemini can be used without changing business logic;
+- tests can use a mock provider;
+- API quota is protected;
+- provider-specific implementation remains isolated;
+- reliability logic can be regression-tested deterministically.
+
+---
+
+## 32. Project Structure
 
 ```text
 AgriPulse/
-├── index.html
+├── api/
+│   └── index.ts
+├── server/
+│   ├── evaluation/
+│   ├── scripts/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── data/
+│   │   ├── db/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── providers/
+│   │   ├── routes/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── tests/
+│   ├── .env.example
+│   ├── package.json
+│   └── tsconfig.json
+├── src/
+│   ├── components/
+│   ├── config/
+│   ├── context/
+│   ├── data/
+│   ├── hooks/
+│   ├── lib/
+│   ├── pages/
+│   ├── services/
+│   ├── test/
+│   ├── types/
+│   ├── App.tsx
+│   └── main.tsx
+├── test-assets/
+├── .gitignore
 ├── package.json
-├── postcss.config.js
 ├── tailwind.config.js
 ├── tsconfig.json
-├── vite.config.ts
-├── README.md
-├── src/
-│   ├── App.tsx
-│   ├── main.tsx
-│   ├── index.css
-│   ├── __tests__/
-│   │   ├── apiIntegration.test.tsx
-│   │   ├── App.test.tsx
-│   │   ├── auth.test.tsx
-│   │   ├── Button.test.tsx
-│   │   └── crops.test.ts
-│   ├── components/
-│   │   ├── auth/
-│   │   │   └── ProtectedRoute.tsx
-│   │   ├── layout/
-│   │   │   ├── AppLayout.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   └── Navbar.tsx
-│   │   └── ui/
-│   │       ├── Badge.tsx
-│   │       ├── Button.tsx
-│   │       ├── Card.tsx
-│   │       ├── Input.tsx
-│   │       ├── Modal.tsx
-│   │       ├── PasswordInput.tsx
-│   │       ├── SegmentedControl.tsx
-│   │       └── WeatherBar.tsx
-│   ├── config/
-│   │   ├── crops.ts
-│   │   └── routes.ts
-│   ├── context/
-│   │   └── AuthContext.tsx
-│   ├── pages/
-│   │   ├── AdvisoryDetailPage.tsx
-│   │   ├── AnalyzePage.tsx
-│   │   ├── DashboardPage.tsx
-│   │   ├── HistoryDetailPage.tsx
-│   │   ├── HistoryPage.tsx
-│   │   ├── HomePage.tsx
-│   │   ├── LoginPage.tsx
-│   │   ├── NotFoundPage.tsx
-│   │   └── SignupPage.tsx
-│   ├── services/
-│   │   ├── advisoryService.ts
-│   │   └── apiClient.ts
-│   └── types/
-│       └── index.ts
-└── server/
-    ├── package.json
-    ├── tsconfig.json
-    ├── .env.example
-    ├── evaluation/
-    │   ├── cases.json
-    │   ├── schema.ts
-    │   ├── source-manifest.json
-    │   └── images/
-    ├── scripts/
-    │   ├── run-evaluation.ts
-    │   └── run-stage11e2-e2e.ts
-    ├── tests/
-    │   ├── analysisOwnership.test.ts
-    │   ├── agronomyKnowledge.test.ts
-    │   ├── api.test.ts
-    │   ├── authService.test.ts
-    │   ├── cropTaxonomy.test.ts
-    │   ├── databaseService.test.ts
-    │   ├── evaluationHarness.test.ts
-    │   ├── evaluationImageValidation.test.ts
-    │   ├── geminiIntegration.test.ts
-    │   ├── geminiVisionProvider.test.ts
-    │   ├── locationService.test.ts
-    │   ├── openMeteoProvider.test.ts
-    │   ├── providers.test.ts
-    │   ├── securityAndPipeline.test.ts
-    │   └── validation.test.ts
-    └── src/
-        ├── app.ts
-        ├── server.ts
-        ├── config/
-        │   └── index.ts
-        ├── controllers/
-        │   ├── analysisController.ts
-        │   ├── authController.ts
-        │   ├── decisionController.ts
-        │   ├── locationController.ts
-        │   └── weatherController.ts
-        ├── data/
-        │   └── agronomy/
-        │       ├── chickpea.ts
-        │       ├── chilli.ts
-        │       ├── cotton.ts
-        │       ├── groundnut.ts
-        │       ├── maize.ts
-        │       ├── potato.ts
-        │       ├── rice.ts
-        │       ├── soybean.ts
-        │       ├── tomato.ts
-        │       └── wheat.ts
-        ├── db/
-        │   └── connection.ts
-        ├── middleware/
-        │   ├── authMiddleware.ts
-        │   ├── errorHandler.ts
-        │   ├── rateLimiter.ts
-        │   └── sessionMiddleware.ts
-        ├── models/
-        │   ├── Analysis.ts
-        │   └── User.ts
-        ├── providers/
-        │   ├── ai/
-        │   │   ├── aiProvider.ts
-        │   │   ├── aiProviderFactory.ts
-        │   │   ├── geminiVisionProvider.ts
-        │   │   └── mockAIProvider.ts
-        │   └── weather/
-        │       ├── openMeteoProvider.ts
-        │       └── weatherProvider.ts
-        ├── schemas/
-        │   ├── agronomySchema.ts
-        │   ├── aiAssessmentSchema.ts
-        │   └── index.ts
-        ├── services/
-        │   ├── agronomy/
-        │   │   └── agronomyService.ts
-        │   ├── ai/
-        │   │   └── aiReliabilityService.ts
-        │   ├── analysis/
-        │   │   └── analysisService.ts
-        │   ├── auth/
-        │   │   └── authService.ts
-        │   ├── decisionEngine.ts
-        │   ├── imageProcessingService.ts
-        │   └── locationService.ts
-        └── types/
-            └── index.ts
+├── vercel.json
+└── vite.config.ts
 ```
 
 ---
 
-## 24. Live Demo Walkthrough
+## 33. Project Limitations
 
-1. **Authentication**: Navigate to `/register` $\rightarrow$ Enter name, email, and password $\rightarrow$ Account is created and session cookie issued.
-2. **Dashboard**: User is redirected to `/dashboard` displaying personal greeting and empty field analysis record log.
-3. **Initiate Field Analysis**: Click **"Analyze New Field"** $\rightarrow$ Navigate to `/analyze`.
-4. **Configure Location & Crop**: Select *"Tomato"* and enter location *"Vijayawada"*.
-5. **Upload Crop Foliage Photo**: Upload leaf image file (e.g., `tomato-leaf.jpg`).
-6. **Execute Pipeline**: Click **"Analyze Field Condition"**.
-7. **Review Diagnosis**: System presents visual condition diagnosis (*"Tomato Early Blight"*), diagnostic confidence score ($92\%$), and visual symptom observations.
-8. **Inspect Weather-Aware Action Window**: System displays 48-hour forecast graph and calculated spray window status (`ACT_NOW` / `FAVORABLE`), highlighting wind speed limits ($7$ km/h) and rain probability ($10\%$).
-9. **View Agronomic Advisory**: Review ICAR-grounded management recommendations and monitoring checklists.
-10. **Archive & History**: Return to `/dashboard` or `/history` to view saved advisory logs tied securely to the farmer's account.
+AgriPulse is a decision-support system, not a replacement for a qualified agronomist or agricultural extension officer.
 
----
+Important limitations include:
 
-## 25. Project Limitations
+### Visual diagnosis
 
-- **Probabilistic Visual AI**: Vision models evaluate surface leaf symptoms and cannot detect soil-borne root pathogens or viral infections prior to visual symptom emergence.
-- **Bounded Taxonomy**: Currently configured for 10 target crops and 53 grounded disease conditions. Diseases outside this taxonomy trigger the `UNSUPPORTED` safety fallback.
-- **Micro-Climate Variations**: Open-Meteo forecasts model grid cell meteorological trends; hyper-local micro-climates (e.g., valley fog or localized wind gusts) should be visually verified in the field prior to spraying.
+A photograph may not contain enough information to distinguish visually similar conditions.
 
----
+### Taxonomy
 
-## 26. Future Roadmap
+The application can only provide grounded disease/condition-specific guidance for conditions represented in its knowledge base.
 
-- **Extended Crop Taxonomy**: Expand agronomy knowledge base to cover pulses, sugarcane, and regional horticulture crops.
-- **Multilingual Farmer Voice Support**: Integrate speech-to-text and localized audio advisory outputs in regional languages (Telugu, Hindi, Punjabi, Tamil).
-- **Offline Progressive Web App (PWA)**: Enable offline image capture and local caching for remote farm locations with weak cellular connectivity.
-- **Agronomist Feedback Loop**: Enable certified agricultural officers to review flagged `NEEDS_REVIEW` diagnoses and update regional disease advisories.
+### Field conditions
 
----
+A photograph cannot fully represent:
 
-## 27. License & Attribution
+- soil condition
+- root health
+- pest population
+- field-wide disease spread
+- microscopic pathogen evidence
+- local microclimate variations
 
-- **Project Code**: Designed and Developed by **VIHARI KALLA (24KT1A4720)**.
-- **Evaluation Dataset Provenance**: Benchmark evaluation images sourced from PlantVillage, Digital Green / SAGE, ICAR-IIWBR, ICAR-IIHR, Project-AgML, and ICAR-CICR Nagpur under Creative Commons CC-BY-4.0 licenses (see `server/evaluation/source-manifest.json`).
-- **Weather Data**: Powered by Open-Meteo APIs (Non-commercial CC-BY-4.0).
+### Weather
+
+Forecast data is not a guarantee of field conditions. Farmers should verify local wind, rainfall, and leaf wetness before application.
+
+### Treatment
+
+Any crop-protection product must be used according to applicable local registration, label instructions, safety requirements, and qualified local agricultural guidance.
 
 ---
 
-## 28. Author Attribution
+## 34. Future Roadmap
 
-**AgriPulse**
-Designed and Developed by **VIHARI KALLA (24KT1A4720)**  
-*Weather-Aware Agricultural Decision Support System*
+Potential future improvements include:
+
+- multilingual farmer interaction;
+- Telugu/Hindi voice support;
+- offline/PWA support;
+- agronomist feedback loops;
+- richer field history analytics;
+- farm-level dashboards;
+- GPS-assisted field records;
+- improved image-storage architecture using dedicated object storage;
+- larger validated evaluation datasets;
+- field-level disease progression tracking.
+
+---
+
+## 35. Responsible AI Principles
+
+AgriPulse follows several principles:
+
+### Ground before recommending
+
+A model prediction should be grounded in the application's supported agronomic knowledge.
+
+### Uncertainty should be visible
+
+Low confidence should produce a visible verification state instead of artificial certainty.
+
+### Deterministic rules for hard constraints
+
+Weather-window decisions use deterministic application logic.
+
+### No fabricated diagnoses
+
+Unsupported conditions are not silently mapped to a different disease.
+
+### No unsafe treatment leakage
+
+Uncertain diagnoses do not receive disease-specific chemical recommendations.
+
+### Human verification remains important
+
+The application is designed to assist agricultural decision-making, not eliminate professional field inspection.
+
+---
+
+## 36. Demo Walkthrough
+
+For a hackathon demonstration:
+
+### Step 1 — Landing Page
+
+Show the problem and AgriPulse concept.
+
+### Step 2 — Sign Up
+
+Create a farmer account.
+
+### Step 3 — Analyze Field
+
+Select:
+
+```text
+Crop → Tomato
+Location → Field location
+Image → Crop leaf photograph
+```
+
+### Step 4 — AI Analysis
+
+Show the staged analysis interface.
+
+### Step 5 — Reliability
+
+Demonstrate either:
+
+```text
+RELIABLE
+```
+
+or:
+
+```text
+AGRONOMIC VERIFICATION NEEDED
+```
+
+### Step 6 — Weather
+
+Show:
+
+- current temperature
+- humidity
+- rainfall probability
+- wind
+- forecast window
+
+### Step 7 — Decision
+
+Demonstrate:
+
+```text
+ACT_NOW
+```
+
+or:
+
+```text
+WAIT
+```
+
+depending on weather.
+
+### Step 8 — Ask AgriPulse
+
+Ask a contextual agronomic question.
+
+### Step 9 — History
+
+Open History and demonstrate that the analysis persists.
+
+### Step 10 — Persistence
+
+Refresh or log out/in and show that the record remains available.
+
+---
+
+## 37. Production Verification
+
+The production application has been verified for:
+
+- frontend build
+- backend build
+- frontend TypeScript
+- backend TypeScript
+- authentication
+- MongoDB Atlas connection
+- MongoDB analysis persistence
+- analysis history
+- history cache prevention
+- uploaded image persistence
+- Gemini vision integration
+- reliability safety
+- treatment leakage prevention
+- Ask AgriPulse context handling
+- user ownership isolation
+
+Current automated test status:
+
+```text
+Frontend: 19 / 19
+Backend: 131 / 131
+Total:    150 / 150
+```
+
+---
+
+## 38. Development Commands
+
+### Frontend
+
+```bash
+npm install
+npm run dev
+npm run build
+npx vitest run
+npx tsc --noEmit
+```
+
+### Backend
+
+```bash
+cd server
+npm install
+npm run dev
+npm run build
+npx vitest run
+npx tsc --noEmit
+```
+
+### Return to project root
+
+```bash
+cd ..
+```
+
+---
+
+## 39. Git Safety
+
+Never commit:
+
+```text
+server/.env
+.env
+.env.local
+API keys
+MongoDB connection strings containing credentials
+JWT/session secrets
+private certificates
+```
+
+The repository contains environment templates such as:
+
+```text
+server/.env.example
+```
+
+Use those templates as the starting point for local configuration.
+
+---
+
+## 40. License & Attribution
+
+AgriPulse is an original project implementation.
+
+Third-party services and datasets used during development/evaluation retain their respective licenses and attribution requirements.
+
+Relevant external services include:
+
+- Google Gemini
+- MongoDB Atlas
+- Open-Meteo
+- Vercel
+
+Evaluation images are tracked with source/provenance metadata inside:
+
+```text
+server/evaluation/source-manifest.json
+```
+
+---
+
+## 41. Author
+
+**Designed and Developed by Vihari Kalla**
+
+AgriPulse was built as an end-to-end agricultural AI decision-support platform with an emphasis on:
+
+- practical farmer workflows;
+- responsible AI;
+- weather-aware decisions;
+- grounded agronomic knowledge;
+- secure authentication;
+- persistent analysis history;
+- testable production architecture.
+
+---
+
+## 42. Live Project
+
+### Application
+
+https://agripulse-project.vercel.app/
+
+### Source Repository
+
+https://github.com/viharikalla/AgriPulse
+
+---
+
+## 43. Final Summary
+
+AgriPulse is not simply a crop-image classifier.
+
+It combines:
+
+```text
+Computer Vision
+      +
+AI Reliability
+      +
+Agronomic Knowledge
+      +
+Weather Intelligence
+      +
+Deterministic Decision Logic
+      +
+Secure Authentication
+      +
+Persistent Farmer History
+      +
+Context-Aware Agronomic Assistant
+```
+
+The result is a complete decision-support workflow designed to help farmers move from:
+
+> **"What is happening to my crop?"**
+
+to:
+
+> **"How confident are we, what should I verify, and when is it safer to act?"**
+
+That distinction is the foundation of AgriPulse's safety-oriented architecture.
