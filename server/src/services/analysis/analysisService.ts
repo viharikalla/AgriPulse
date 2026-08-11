@@ -201,15 +201,20 @@ export class AnalysisService {
       notes: input.notes,
     };
 
-    // 8. Persistence (Mongoose if connected, else InMem fallback)
+    // 8. Persistence (Mongoose if connected, else InMem fallback for local/test)
     if (mongoose.connection.readyState === 1) {
       try {
         await AnalysisModel.create({
           ...analysis,
           _id: id,
         });
-      } catch {
-        await InMemAnalysisStore.save(analysis);
+      } catch (err) {
+        const sanitizedMsg = err instanceof Error ? err.message : 'Unknown database error';
+        console.error(`[AnalysisService Log] status=PERSISTENCE_FAILED errorCategory=DATABASE_ERROR message="${sanitizedMsg}"`);
+        const dbError = new Error('DATABASE_ERROR: Failed to persist field analysis record to MongoDB database.');
+        (dbError as any).code = 'DATABASE_ERROR';
+        (dbError as any).status = 500;
+        throw dbError;
       }
     } else {
       await InMemAnalysisStore.save(analysis);

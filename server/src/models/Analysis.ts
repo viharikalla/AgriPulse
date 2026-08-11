@@ -1,10 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { FieldAnalysis } from '../types/index.js';
 
-export interface IAnalysisDocument extends Omit<FieldAnalysis, 'id'>, Document {}
+export interface IAnalysisDocument extends Omit<FieldAnalysis, 'id'>, Omit<Document, '_id'> {
+  _id: string;
+}
 
 const AnalysisSchema = new Schema<IAnalysisDocument>(
   {
+    _id: { type: String, required: true },
     sessionId: { type: String, required: true, index: true },
     userId: { type: String, index: true },
     createdAt: { type: String, required: true, default: () => new Date().toISOString(), index: true },
@@ -14,6 +17,7 @@ const AnalysisSchema = new Schema<IAnalysisDocument>(
     crop: {
       name: { type: String, required: true, index: true },
       displayName: { type: String, required: true },
+      icon: { type: String },
     },
     photoUrl: { type: String, required: true },
     assessment: { type: Schema.Types.Mixed, required: true },
@@ -24,6 +28,7 @@ const AnalysisSchema = new Schema<IAnalysisDocument>(
     notes: { type: String },
   },
   {
+    _id: false,
     timestamps: true,
   }
 );
