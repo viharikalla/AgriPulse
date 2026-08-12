@@ -1284,23 +1284,6 @@ Any crop-protection product must be used according to applicable local registrat
 
 ---
 
-## 34. Future Roadmap
-
-Potential future improvements include:
-
-- multilingual farmer interaction;
-- Telugu/Hindi voice support;
-- offline/PWA support;
-- agronomist feedback loops;
-- richer field history analytics;
-- farm-level dashboards;
-- GPS-assisted field records;
-- improved image-storage architecture using dedicated object storage;
-- larger validated evaluation datasets;
-- field-level disease progression tracking.
-
----
-
 ## 35. Responsible AI Principles
 
 AgriPulse follows several principles:

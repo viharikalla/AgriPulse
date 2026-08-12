@@ -30,6 +30,27 @@ export const FieldImageUploader: React.FC<FieldImageUploaderProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const samplePhotos = [
+    {
+      name: 'Tomato Leaf Blight',
+      sizeMB: '2.4 MB',
+      type: 'image/jpeg',
+      url: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      name: 'Chilli Fruit Rot',
+      sizeMB: '3.1 MB',
+      type: 'image/jpeg',
+      url: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      name: 'Rice Sheath Spot',
+      sizeMB: '1.8 MB',
+      type: 'image/png',
+      url: 'https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=800&q=80',
+    },
+  ];
+
   const processFile = (file: File) => {
     if (setError) setError(null);
 
@@ -222,9 +243,35 @@ export const FieldImageUploader: React.FC<FieldImageUploaderProps> = ({
             </Button>
           </div>
 
-          <p className="text-[10px] font-mono text-[#F5F2E8]/50 uppercase tracking-wider">
+          <p className="text-[10px] font-mono text-[#F5F2E8]/50 uppercase tracking-wider mb-4">
             Supports: JPEG, PNG, WebP &bull; Maximum: 10 MB
           </p>
+
+          {/* Optional Test Sample Images Bar */}
+          <div className="pt-4 border-t border-white/10 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#F5F2E8]/40 mb-2.5">
+              Optional: Pick sample test image (for evaluator testing):
+            </p>
+            <div className="flex justify-center flex-wrap gap-2">
+              {samplePhotos.map((sample) => (
+                <button
+                  key={sample.name}
+                  type="button"
+                  onClick={() =>
+                    onPhotoSelected(sample.url, {
+                      name: `${sample.name.toLowerCase().replace(/\s+/g, '_')}.jpg`,
+                      sizeMB: sample.sizeMB,
+                      type: 'JPEG',
+                    })
+                  }
+                  className="px-3 py-1.5 text-xs glass-light border border-white/15 rounded-full hover:border-[#B9E48C] hover:text-[#B9E48C] text-[#F5F2E8]/80 transition-colors flex items-center gap-1.5"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-[#B9E48C]" />
+                  {sample.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
