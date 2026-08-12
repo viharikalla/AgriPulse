@@ -4,9 +4,10 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { MessageSquare, Sparkles, Send, HelpCircle, CheckCircle2 } from 'lucide-react';
 import { ApiClient } from '../../services/apiClient';
+import { SupportedCropName } from '../../types';
 
 export interface AskAgriPulseProps {
-  cropName?: string;
+  cropName?: SupportedCropName;
   conditionName?: string;
   isNeedsReview?: boolean;
   analysisId?: string;
@@ -74,7 +75,7 @@ export const AskAgriPulse: React.FC<AskAgriPulseProps> = ({
 
     setLoading(true);
     try {
-      const answer = await ApiClient.askFieldQuestion(query, cropName as any, analysisId);
+      const answer = await ApiClient.askFieldQuestion(query, cropName, analysisId);
       setActiveAnswer(answer);
     } catch {
       setActiveAnswer(

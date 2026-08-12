@@ -67,9 +67,9 @@ export class LocationService {
       CacheService.set(cacheKey, locations, 24 * 60 * 60 * 1000);
 
       return locations;
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      if (err instanceof Error && err.name === 'AbortError') {
         throw new Error(`Location search timed out after ${this.timeoutMs}ms.`);
       }
       throw err;

@@ -24,8 +24,9 @@ export async function getWeather(req: Request, res: Response, next: NextFunction
       success: true,
       data: snapshot,
     });
-  } catch (err: any) {
-    if (err.code === 'WEATHER_PROVIDER_UNAVAILABLE' || err.code === 'WEATHER_PROVIDER_TIMEOUT' || err.code === 'WEATHER_INVALID_RESPONSE') {
+  } catch (err: unknown) {
+    const errCode = (err as { code?: string })?.code;
+    if (errCode === 'WEATHER_PROVIDER_UNAVAILABLE' || errCode === 'WEATHER_PROVIDER_TIMEOUT' || errCode === 'WEATHER_INVALID_RESPONSE') {
       res.status(503).json({
         success: false,
         error: {

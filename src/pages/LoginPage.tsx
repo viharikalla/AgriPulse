@@ -46,8 +46,8 @@ export const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       navigate(ROUTES.DASHBOARD);
-    } catch (err: any) {
-      setServerError(err.message || 'Email or password is incorrect.');
+    } catch (err: unknown) {
+      setServerError(err instanceof Error ? err.message : 'Email or password is incorrect.');
     } finally {
       setIsSubmitting(false);
     }

@@ -71,8 +71,8 @@ export const SignupPage: React.FC = () => {
     try {
       await signup(name, email, password, confirmPassword);
       navigate(ROUTES.DASHBOARD);
-    } catch (err: any) {
-      setServerError(err.message || 'Account registration failed. Please try again.');
+    } catch (err: unknown) {
+      setServerError(err instanceof Error ? err.message : 'Account registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -100,9 +100,9 @@ export const AnalyzePage: React.FC = () => {
       setIsModalOpen(false);
       setIsAnalyzing(false);
       navigate(getAdvisoryDetailPath(result.id));
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsAnalyzing(false);
-      setAnalysisError(err.message || 'Field analysis service is temporarily unavailable. Please try again.');
+      setAnalysisError(err instanceof Error ? err.message : 'Field analysis service is temporarily unavailable. Please try again.');
     }
   };
 
