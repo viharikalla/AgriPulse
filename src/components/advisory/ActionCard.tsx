@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Badge } from '../ui/Badge';
+import { Badge, BadgeProps } from '../ui/Badge';
 import { Clock, AlertTriangle, CloudRain, ShieldAlert } from 'lucide-react';
 
 export interface ActionCardProps {
@@ -22,7 +22,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
   const isActNow = decision === 'ACT_NOW';
   const isFavorable = decision === 'FAVORABLE';
 
-  const badgeVariant = isInsufficient ? 'warning' : isActNow ? 'success' : isFavorable ? 'info' : 'warning';
+  const badgeVariant: BadgeProps['variant'] = isInsufficient ? 'warning' : isActNow ? 'success' : isFavorable ? 'info' : 'warning';
   const badgeText = isInsufficient
     ? 'FIELD DECISION: VERIFY FIELD'
     : isActNow
@@ -52,7 +52,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({
             </span>
             <CardTitle className="text-base text-[#F5F2E8]">2. WHAT SHOULD I DO & WHEN SHOULD I ACT?</CardTitle>
           </div>
-          <Badge variant={badgeVariant as any} size="sm" icon={<AlertTriangle className="w-3 h-3 text-[#EBCB78]" />}>
+          <Badge variant={badgeVariant} size="sm" icon={<AlertTriangle className="w-3 h-3 text-[#EBCB78]" />}>
             {badgeText}
           </Badge>
         </div>

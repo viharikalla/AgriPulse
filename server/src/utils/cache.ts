@@ -4,7 +4,7 @@ interface CacheItem<T> {
 }
 
 export class CacheService {
-  private static store: Map<string, CacheItem<any>> = new Map();
+  private static store: Map<string, CacheItem<unknown>> = new Map();
 
   public static get<T>(key: string): T | null {
     const item = this.store.get(key);

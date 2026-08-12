@@ -6,7 +6,7 @@ import { ImageProcessingService } from '../imageProcessingService.js';
 import { DecisionEngine } from '../decision/decisionEngine.js';
 import { AgronomyService } from '../agronomy/agronomyService.js';
 import { AIReliabilityService } from '../ai/aiReliabilityService.js';
-import { FieldAnalysis, AnalyzeRequestInput, FieldDecision, ActionWindow } from '../../types/index.js';
+import { FieldAnalysis, AnalyzeRequestInput, FieldDecision, ActionWindow, SupportedCrop, CropAssessment } from '../../types/index.js';
 import { AnalysisModel, InMemAnalysisStore } from '../../models/Analysis.js';
 import mongoose from 'mongoose';
 
@@ -321,8 +321,8 @@ export class AnalysisService {
     return InMemAnalysisStore.findByUser(userId);
   }
 
-  public async askAssistant(question: string, contextCrop?: any, analysisId?: string): Promise<string> {
-    let contextAnalysis: any = undefined;
+  public async askAssistant(question: string, contextCrop?: SupportedCrop, analysisId?: string): Promise<string> {
+    let contextAnalysis: CropAssessment | undefined = undefined;
     if (analysisId) {
       const record = await this.getAnalysisById(analysisId);
       if (record) {

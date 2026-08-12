@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 
 export interface AppError extends Error {
   statusCode?: number;
+  status?: number;
   code?: string;
 }
 
@@ -12,7 +13,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  let statusCode = err.statusCode || (err as any).status || (err instanceof ZodError ? 400 : 500);
+  let statusCode = err.statusCode || err.status || (err instanceof ZodError ? 400 : 500);
   let code = err.code || (err instanceof ZodError ? 'VALIDATION_ERROR' : 'INTERNAL_SERVER_ERROR');
 
   if (err.code) {
