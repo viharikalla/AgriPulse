@@ -150,7 +150,7 @@ describe('Frontend API Integration & Reliability UI Tests', () => {
   });
 
   it('1. Image selection updates photo state and preview', async () => {
-    render(
+    const { container } = render(
       <BrowserRouter>
         <AnalyzePage />
       </BrowserRouter>
@@ -158,17 +158,33 @@ describe('Frontend API Integration & Reliability UI Tests', () => {
 
     expect(screen.getAllByText(/FIELD EVIDENCE/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/Analyze my field/i)).toBeInTheDocument();
+
+    const file = new File(['dummy content'], 'my_leaf.jpg', { type: 'image/jpeg' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/my_leaf.jpg/i)).toBeInTheDocument();
+    });
   });
 
   it('3 & 4. Successful /api/analyze execution triggers ApiClient.analyzeField', async () => {
     const mockResult = createMockFieldAnalysis();
     (ApiClient.analyzeField as any).mockResolvedValue(mockResult);
 
-    render(
+    const { container } = render(
       <BrowserRouter>
         <AnalyzePage />
       </BrowserRouter>
     );
+
+    const file = new File(['dummy content'], 'my_leaf.jpg', { type: 'image/jpeg' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/my_leaf.jpg/i)).toBeInTheDocument();
+    });
 
     const submitBtn = screen.getByText(/Analyze my field/i);
     fireEvent.click(submitBtn);
@@ -257,11 +273,19 @@ describe('Frontend API Integration & Reliability UI Tests', () => {
     (err as any).status = 429;
     (ApiClient.analyzeField as any).mockRejectedValue(err);
 
-    render(
+    const { container } = render(
       <BrowserRouter>
         <AnalyzePage />
       </BrowserRouter>
     );
+
+    const file = new File(['dummy content'], 'my_leaf.jpg', { type: 'image/jpeg' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/my_leaf.jpg/i)).toBeInTheDocument();
+    });
 
     const submitBtn = screen.getByText(/Analyze my field/i);
     fireEvent.click(submitBtn);
@@ -274,11 +298,19 @@ describe('Frontend API Integration & Reliability UI Tests', () => {
   it('11. Submit button is disabled while analysis is running', async () => {
     (ApiClient.analyzeField as any).mockImplementation(() => new Promise(() => {}));
 
-    render(
+    const { container } = render(
       <BrowserRouter>
         <AnalyzePage />
       </BrowserRouter>
     );
+
+    const file = new File(['dummy content'], 'my_leaf.jpg', { type: 'image/jpeg' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/my_leaf.jpg/i)).toBeInTheDocument();
+    });
 
     const submitBtn = screen.getByText(/Analyze my field/i);
     fireEvent.click(submitBtn);
@@ -292,11 +324,19 @@ describe('Frontend API Integration & Reliability UI Tests', () => {
     const err = new Error('Network timeout');
     (ApiClient.analyzeField as any).mockRejectedValueOnce(err).mockResolvedValueOnce(createMockFieldAnalysis());
 
-    render(
+    const { container } = render(
       <BrowserRouter>
         <AnalyzePage />
       </BrowserRouter>
     );
+
+    const file = new File(['dummy content'], 'my_leaf.jpg', { type: 'image/jpeg' });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/my_leaf.jpg/i)).toBeInTheDocument();
+    });
 
     const submitBtn = screen.getByText(/Analyze my field/i);
     fireEvent.click(submitBtn);

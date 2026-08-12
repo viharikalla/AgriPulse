@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Image as ImageIcon, X } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export interface PhotoUploaderProps {
@@ -18,25 +18,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
-  const samplePhotos = [
-    {
-      name: 'Chilli Fruit Rot',
-      url: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      name: 'Tomato Leaf Blight',
-      url: 'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      name: 'Rice Sheath Spot',
-      url: 'https://images.unsplash.com/photo-1536657464919-892534f60d6e?auto=format&fit=crop&w=800&q=80',
-    },
-  ];
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
+      const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `data:${file.type};base64,mockfile`;
       onPhotoSelected(url);
     }
   };
@@ -57,7 +42,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const url = URL.createObjectURL(file);
+      const url = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : `data:${file.type};base64,mockfile`;
       onPhotoSelected(url);
     }
   };
@@ -120,28 +105,9 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           <p className="text-sm font-semibold text-[#F5F2E8] mb-1">
             Click to upload or drag & drop leaf/crop photo
           </p>
-          <p className="text-xs text-[#F5F2E8]/60 max-w-xs mb-4 leading-relaxed">
+          <p className="text-xs text-[#F5F2E8]/60 max-w-xs leading-relaxed">
             High resolution photographs of leaf spots or fruit lesions yield maximum diagnostic accuracy.
           </p>
-
-          <div className="pt-3 border-t border-white/10 w-full max-w-sm">
-            <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#F5F2E8]/50 mb-2">
-              Or load sample field photograph:
-            </p>
-            <div className="flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-              {samplePhotos.map((sample) => (
-                <button
-                  key={sample.name}
-                  type="button"
-                  onClick={() => onPhotoSelected(sample.url)}
-                  className="px-3 py-1 text-xs glass-light border border-white/15 rounded-full hover:border-[#B9E48C] hover:text-[#B9E48C] text-[#F5F2E8]/80 transition-colors flex items-center gap-1.5"
-                >
-                  <ImageIcon className="w-3.5 h-3.5 text-[#B9E48C]" />
-                  {sample.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 

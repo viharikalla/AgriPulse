@@ -33,14 +33,8 @@ export const AnalyzePage: React.FC = () => {
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(
-    'https://images.unsplash.com/photo-1592841200221-a6898f307baa?auto=format&fit=crop&w=800&q=80'
-  );
-  const [imageMeta, setImageMeta] = useState<ImageMeta | null>({
-    name: 'Tomato_Leaf_Blight.jpg',
-    sizeMB: '2.4 MB',
-    type: 'JPEG',
-  });
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [imageMeta, setImageMeta] = useState<ImageMeta | null>(null);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
