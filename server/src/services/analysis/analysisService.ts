@@ -8,6 +8,7 @@ import { AgronomyService } from '../agronomy/agronomyService.js';
 import { AIReliabilityService } from '../ai/aiReliabilityService.js';
 import { FieldAnalysis, AnalyzeRequestInput, FieldDecision, ActionWindow, SupportedCrop, CropAssessment } from '../../types/index.js';
 import { AnalysisModel, InMemAnalysisStore } from '../../models/Analysis.js';
+import { AppError } from '../../middleware/errorHandler.js';
 import mongoose from 'mongoose';
 
 export class AnalysisService {
@@ -211,9 +212,9 @@ export class AnalysisService {
       } catch (err) {
         const sanitizedMsg = err instanceof Error ? err.message : 'Unknown database error';
         console.error(`[AnalysisService Log] status=PERSISTENCE_FAILED errorCategory=DATABASE_ERROR message="${sanitizedMsg}"`);
-        const dbError = new Error('DATABASE_ERROR: Failed to persist field analysis record to MongoDB database.');
-        (dbError as any).code = 'DATABASE_ERROR';
-        (dbError as any).status = 500;
+        const dbError: AppError = new Error('DATABASE_ERROR: Failed to persist field analysis record to MongoDB database.');
+        dbError.code = 'DATABASE_ERROR';
+        dbError.status = 500;
         throw dbError;
       }
     } else {
@@ -226,8 +227,7 @@ export class AnalysisService {
   public async getAnalysisById(id: string, sessionId?: string, userId?: string): Promise<FieldAnalysis | null> {
     if (mongoose.connection.readyState === 1) {
       try {
-        const query: any = { _id: id };
-        const doc = await AnalysisModel.findOne(query);
+        const doc = await AnalysisModel.findOne({ _id: id });
         if (doc) {
           // Ownership verification: If userId is provided, user must match analysis.userId
           if (userId && doc.userId && doc.userId !== userId) {

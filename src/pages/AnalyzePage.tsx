@@ -6,6 +6,7 @@ import { CropSelector } from '../components/field/CropSelector';
 import { LocationCard } from '../components/field/LocationCard';
 import { WeatherPreview } from '../components/weather/WeatherPreview';
 import { StagedAnalysisModal } from '../components/ai/StagedAnalysisModal';
+import { SUPPORTED_CROPS } from '../config/crops';
 import { Card, Button } from '../components/ui';
 import { getAdvisoryDetailPath } from '../config/routes';
 import { ApiClient } from '../services/apiClient';
@@ -24,7 +25,8 @@ export const AnalyzePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const queryCrop = searchParams.get('crop') as SupportedCropName | null;
+  const rawCrop = searchParams.get('crop');
+  const queryCrop = SUPPORTED_CROPS.find((c) => c.name === rawCrop)?.name || null;
   const [crop, setCrop] = useState<SupportedCropName>(queryCrop || 'Tomato');
   const [locationText, setLocationText] = useState('Vijayawada, Andhra Pradesh');
   const [selectedLocation, setSelectedLocation] = useState<ResolvedLocation | null>(DEFAULT_LOCATION);
